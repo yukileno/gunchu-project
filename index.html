@@ -49,6 +49,26 @@
   .bubble.mine { background: linear-gradient(135deg, #c7ecff, #a5d8ff); border-top-right-radius: 5px; }
   @keyframes popin { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
   .avatar { box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.18); }
+  /* マスター数で変わる飾り：アイコンのふち・称号バッジ・吹き出しの光 */
+  .ava-wrap { position: relative; flex: none; width: 52px; height: 52px; padding: 3px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .ava-wrap .avatar { box-shadow: 0 0 0 2px #fff; }
+  .ava-wrap.t0 { padding: 0; }
+  .ava-wrap.t1 { background: linear-gradient(135deg, #f0b27a, #b9691f); }
+  .ava-wrap.t2 { background: linear-gradient(135deg, #f3f4f6, #9ca3af, #f3f4f6); box-shadow: 0 0 10px rgba(156,163,175,.9); }
+  .ava-wrap.t3 { background: linear-gradient(135deg, #fde047, #f59e0b, #fde047); box-shadow: 0 0 14px rgba(245,158,11,.95); }
+  .ava-wrap.t4, .ava-wrap.t5 { background: conic-gradient(#f43f5e, #f59e0b, #facc15, #22c55e, #06b6d4, #6366f1, #d946ef, #f43f5e); box-shadow: 0 0 16px rgba(217,70,239,.8); animation: ringspin 3s linear infinite; }
+  .ava-wrap.t4 .avatar, .ava-wrap.t5 .avatar { animation: ringspin-rev 3s linear infinite; }
+  @keyframes ringspin { to { transform: rotate(360deg); } }
+  @keyframes ringspin-rev { to { transform: rotate(-360deg); } }
+  .ava-crown { position: absolute; top: -15px; left: 50%; transform: translateX(-50%) rotate(-8deg); font-size: 20px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); animation: bob 1.6s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateX(-50%) translateY(-3px) rotate(8deg); } }
+  .mbadge { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 800; color: #fff; background: linear-gradient(100deg, #f59e0b, #ef4444, #d946ef, #6366f1, #f59e0b); background-size: 300% 100%; animation: shine 3s linear infinite; box-shadow: 0 1px 6px rgba(217,70,239,.5); }
+  .mbadge.small { background: linear-gradient(100deg, #f59e0b, #fb923c); animation: none; box-shadow: none; }
+  @keyframes shine { to { background-position: 300% 0; } }
+  .mteam { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; box-shadow: 0 0 0 1.5px #fff, 0 1px 4px rgba(0,0,0,.25); }
+  .bubble.glow3 { box-shadow: 0 0 0 2px #fde047, 0 4px 16px rgba(245,158,11,.55); }
+  .bubble.glow5 { box-shadow: 0 0 0 3px #fde047, 0 0 22px rgba(217,70,239,.55), 0 4px 16px rgba(245,158,11,.5); animation: glowpulse 2s ease-in-out infinite; }
+  @keyframes glowpulse { 50% { box-shadow: 0 0 0 3px #f0abfc, 0 0 30px rgba(99,102,241,.7), 0 4px 16px rgba(245,158,11,.5); } }
   /* スタンプ */
   .stamp { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: #fff; border: 2px solid #e5e7eb; font-size: 12px; line-height: 1.2; cursor: pointer; user-select: none; transition: transform .1s, box-shadow .15s; box-shadow: 0 2px 5px rgba(0,0,0,.08); }
   .stamp:hover { box-shadow: 0 0 0 3px rgba(251,191,36,.35); }
@@ -640,6 +660,18 @@ function countOf(p, key) {
   var b = state.bumped[p.id + '|' + key];
   return b != null && b > base ? b : base;
 }
+// マスター数 → 飾りの段階（0:なし 1:銅 2:銀 3:金 4:虹 5:全部マスター）
+function mTier(n) { return n >= 11 ? 5 : n >= 8 ? 4 : n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0; }
+function mBadgeHtml(ms) {
+  if (!ms.length) return '';
+  var tier = mTier(ms.length), title = STATUS_TITLES.filter(function (x) { return ms.length >= x[0]; })[0][1];
+  var shown = ms.slice(-4).map(function (id) {
+    var x = teamOf(id);
+    return '<span class="mteam" title="' + esc(x.short) + 'マスター" style="background:' + x.color + '">' + x.icon + '</span>';
+  }).join('');
+  return '<span class="mbadge' + (tier >= 3 ? '' : ' small') + '">' + (tier >= 3 ? title : '🏅 マスター') + ' ×' + ms.length + '</span>' +
+    '<span class="inline-flex items-center gap-0.5">' + shown + (ms.length > 4 ? '<span class="text-[10px] font-extrabold text-amber-600">+' + (ms.length - 4) + '</span>' : '') + '</span>';
+}
 function renderFeed() {
   var list = state.posts.filter(function (p) { return !state.filter || p.teamId === state.filter; });
   if (!list.length) {
@@ -655,13 +687,16 @@ function renderFeed() {
       return '<span class="stamp ' + (on ? 'on ' : '') + (mine ? 'off' : '') + '" data-p="' + esc(p.id) + '" data-s="' + s.key + '">' +
         s.emoji + '<span class="hidden sm:inline">' + s.label + '</span><b class="cnt">' + countOf(p, s.key) + '</b></span>';
     }).join('');
-    var avatar = '<div class="avatar flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl text-white" style="background:linear-gradient(135deg,' + t.color + ',' + t.color + 'aa)">' + t.icon + '</div>';
+    var ms = mine && state.me.mastered ? state.me.mastered : (p.ms || []), tier = mTier(ms.length);
+    var avatar = '<div class="ava-wrap t' + tier + '">' + (ms.length >= 8 ? '<span class="ava-crown">👑</span>' : '') +
+      '<div class="avatar flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl text-white" style="background:linear-gradient(135deg,' + t.color + ',' + t.color + 'aa)">' + t.icon + '</div></div>';
     var body =
       '<div class="min-w-0 max-w-[82%]">' +
       '<div class="mb-0.5 flex flex-wrap items-center gap-1 text-xs ' + (mine ? 'justify-end' : '') + '">' +
       '<span class="font-bold text-gray-700">' + p.classNum + '組 ' + esc(p.name) + '</span>' +
-      '<span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:' + t.color + '">' + CIRCLED[t.id - 1] + t.short + '</span></div>' +
-      '<div class="bubble ' + (mine ? 'mine' : 'other') + (fresh ? ' fresh' : '') + '"' + (mine ? '' : ' style="border-left:5px solid ' + t.color + '"') + '>' +
+      '<span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:' + t.color + '">' + CIRCLED[t.id - 1] + t.short + '</span>' +
+      mBadgeHtml(ms) + '</div>' +
+      '<div class="bubble ' + (mine ? 'mine' : 'other') + (tier >= 4 ? ' glow5' : tier >= 3 ? ' glow3' : '') + (fresh ? ' fresh' : '') + '"' + (mine ? '' : ' style="border-left:5px solid ' + t.color + '"') + '>' +
       '<div class="mb-1 flex flex-col gap-1">' + String(p.tag).split('|').map(function (x) {
         return '<div style="background:' + t.color + '22;border:1.5px solid ' + t.color + '66" class="rounded-xl px-2.5 py-1 text-sm font-extrabold text-gray-800">✅ ' + esc(x) + '</div>';
       }).join('') + '</div>' +
