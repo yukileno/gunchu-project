@@ -900,7 +900,14 @@ $('fab').addEventListener('click', openPost);
 $('reloadBtn').addEventListener('click', function () {
   var wait = 30000 - (Date.now() - state.lastRefresh);
   if (wait > 0) { toast('あと' + Math.ceil(wait / 1000) + '秒したら見られるよ'); return; }
-  refresh(true).then(function () { toast('更新したよ'); });
+  var btn = $('reloadBtn'), feed = $('feed');
+  if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = '⏳ 読み込み中…'; btn.style.opacity = '.55';
+  feed.style.opacity = '.45'; feed.style.transition = 'opacity .2s'; feed.style.pointerEvents = 'none';
+  refresh(true).then(function () { toast('更新したよ'); }).finally(function () {
+    btn.disabled = false; btn.textContent = '🔄 新しい投稿を見る'; btn.style.opacity = '';
+    feed.style.opacity = ''; feed.style.pointerEvents = '';
+  });
 });
 $('postClose').addEventListener('click', closePost);
 $('postBtn').addEventListener('click', submitPost);
