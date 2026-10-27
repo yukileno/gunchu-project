@@ -67,10 +67,10 @@
   .modal-card { background: linear-gradient(180deg, #ffffff, #f5f3ff); width: 100%; max-width: 580px; max-height: 92vh; overflow-y: auto; border-radius: 28px 28px 0 0; padding: 18px 18px 24px; border-top: 6px solid #8b5cf6; animation: popin .3s ease; }
   @media (min-width: 640px) { .modal-back { align-items: center; } .modal-card { border-radius: 28px; border: 3px solid #fff; box-shadow: 0 20px 60px rgba(0,0,0,.35); } }
   .modal-wide { max-width: 1040px; }
-  .team-card { position: relative; text-align: left; padding: 12px 14px 12px 16px; border-radius: 18px; background: #fff; border: 3px solid #e5e7eb; border-left: 10px solid var(--c); box-shadow: 0 3px 10px rgba(0,0,0,.08); transition: transform .12s, box-shadow .12s; }
-  .team-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.14); }
-  .team-card.on { background: linear-gradient(120deg, color-mix(in srgb, var(--c) 18%, #fff), #fff); border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent), 0 10px 22px rgba(0,0,0,.15); transform: scale(1.02); }
-  .team-card.on::after { content: "✅ えらんだ！"; position: absolute; top: 8px; right: 10px; font-size: 12px; font-weight: 800; color: #fff; background: var(--c); padding: 2px 10px; border-radius: 999px; }
+  .team-card, .tt-card { position: relative; text-align: left; padding: 12px 14px 12px 16px; border-radius: 18px; background: #fff; border: 3px solid #e5e7eb; border-left: 10px solid var(--c); box-shadow: 0 3px 10px rgba(0,0,0,.08); transition: transform .12s, box-shadow .12s; }
+  .team-card:hover, .tt-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.14); }
+  .team-card.on, .tt-card.on { background: linear-gradient(120deg, color-mix(in srgb, var(--c) 18%, #fff), #fff); border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent), 0 10px 22px rgba(0,0,0,.15); transform: scale(1.02); }
+  .team-card.on::after, .tt-card.on::after { content: "✅ えらんだ！"; position: absolute; top: 8px; right: 10px; font-size: 12px; font-weight: 800; color: #fff; background: var(--c); padding: 2px 10px; border-radius: 999px; }
   .field { width: 100%; border: 2px solid #d1d5db; border-radius: 14px; padding: 10px; font-size: 16px; background: #fff; }
   .field:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
   .update-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 90; background: linear-gradient(90deg, #f59e0b, #ef4444); color: #fff; padding: 10px 12px; display: flex; gap: 10px; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
@@ -119,6 +119,7 @@
   <!-- 左：ゲージ・報告ボタン・チーム絞りこみ -->
   <aside id="side" class="space-y-3">
     <button id="fab" class="cta w-full rounded-3xl py-4 text-xl font-extrabold text-white">✨ ＋ 報告する ✨</button>
+    <div id="masterCard" class="glass p-3"></div>
     <button id="reloadBtn" class="glass w-full py-2 text-sm font-extrabold text-violet-700 active:scale-95">🔄 新しい投稿を見る</button>
 
     <div class="glass p-3">
@@ -155,6 +156,20 @@
     <div id="regErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
     <button id="regBtn" class="cta mt-4 w-full rounded-2xl py-3 text-lg font-extrabold text-white">登録してはじめる</button>
     <div class="mt-3 text-center"><button id="openFix1" class="text-xs text-gray-500 underline">前に登録したことがある（先生といっしょに引きつぐ）</button></div>
+  </div>
+</div>
+
+<!-- ===== 移籍（マスターしたあと） ===== -->
+<div id="transferModal" class="modal-back hidden" style="z-index:65">
+  <div class="modal-card modal-wide">
+    <div class="flex items-center justify-between">
+      <div class="text-xl font-extrabold text-amber-600">🎉 マスター達成！ 次のチームにちょうせん</div>
+      <button id="ttClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">あとで</button>
+    </div>
+    <div class="mt-1 text-sm text-gray-600">次にがんばるチームを1つえらぼう。えらぶと、そのチームの所属になります（ポイントは0から）。</div>
+    <div id="ttGrid" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+    <div id="ttErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
+    <button id="ttBtn" class="cta mt-4 w-full rounded-2xl py-3 text-lg font-extrabold text-white">このチームに移る</button>
   </div>
 </div>
 
@@ -221,7 +236,7 @@ var STAMPS = [
 // ============ 状態 ============
 var state = {
   me: null, tags: [], ng: [], posts: [], stats: null, 
-  filter: 0, mine: {}, bumped: {}, regTeam: 0, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
+  filter: 0, mine: {}, bumped: {}, regTeam: 0, ttSel: 0, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
   lastSig: '', lastRefresh: 0, posting: false
 };
 
@@ -371,8 +386,65 @@ function buildStatic() {
       '<span class="text-base font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.name) + '</span></div>' +
       '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div></button>';
   }).join('');
-  updateMeChip();
+  updateMeChip(); renderMaster();
 }
+// ---- マスター（所属チームで MasterPoints をためる → クリア → 次のチームへ移籍）----
+function applyMe(me) {
+  if (!me || !state.me) return;
+  for (var k in me) state.me[k] = me[k];
+  updateMeChip(); renderMaster();
+}
+function renderMaster() {
+  var me = state.me, el = $('masterCard');
+  if (!me) { el.innerHTML = ''; return; }
+  var mp = me.masterPoints || 50, list = me.mastered || [];
+  var t = teamOf(me.teamId), done = list.indexOf(me.teamId) >= 0, all = list.length >= TEAMS.length;
+  var tp = Math.min(me.teamPoints || 0, mp), pct = Math.round(tp / mp * 100);
+  var badges = list.map(function (id) {
+    var x = teamOf(id);
+    return '<span title="' + esc(x.short) + 'マスター" class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-extrabold text-white" style="background:' + x.color + '">' + x.icon + esc(x.short) + '</span>';
+  }).join(' ');
+  var h = '<div class="text-sm font-extrabold text-violet-700">🏅 マスターへの道</div>' +
+    '<div class="mt-1 text-sm font-bold">' + t.icon + ' ' + esc(CIRCLED[t.id - 1] + ' ' + t.short) + 'チーム</div>' +
+    '<div class="mt-1 h-4 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full" style="width:' + pct + '%;background:linear-gradient(90deg,' + t.color + ',#fbbf24);transition:width .8s"></div></div>' +
+    '<div class="mt-1 flex justify-between text-xs text-gray-600"><span>' + tp + ' / ' + mp + ' pt</span><span>' + (done ? '🎉 マスター達成！' : 'あと ' + (mp - tp) + ' pt') + '</span></div>';
+  if (all) h += '<div class="mt-2 rounded-xl bg-amber-100 p-2 text-center text-sm font-extrabold text-amber-700">👑 全チームマスター！ すごい！</div>';
+  else if (done) h += '<button id="ttOpen" class="cta mt-2 w-full rounded-2xl py-2 text-sm font-extrabold text-white">🚀 次のチームにちょうせん！</button>';
+  if (badges) h += '<div class="mt-2 text-xs font-bold text-gray-500">もらった称号</div><div class="mt-1 flex flex-wrap gap-1">' + badges + '</div>';
+  el.innerHTML = h;
+}
+function openTransfer() {
+  var me = state.me; if (!me) return;
+  var list = me.mastered || [];
+  state.ttSel = 0; $('ttErr').classList.add('hidden');
+  $('ttGrid').innerHTML = TEAMS.filter(function (x) { return list.indexOf(x.id) < 0 && x.id !== me.teamId; }).map(function (x) {
+    return '<button type="button" class="tt-card" data-tt="' + x.id + '" style="--c:' + x.color + '">' +
+      '<div class="flex items-center gap-2"><span class="text-3xl">' + x.icon + '</span><span class="text-base font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.name) + '</span></div>' +
+      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div></button>';
+  }).join('');
+  $('transferModal').classList.remove('hidden');
+}
+async function submitTransfer() {
+  var err = $('ttErr');
+  if (!state.ttSel) { err.textContent = 'チームを1つえらんでね'; err.classList.remove('hidden'); return; }
+  var btn = $('ttBtn'); btn.disabled = true; err.classList.add('hidden');
+  try {
+    var r = await writeCall('transferTeam', getToken(), state.ttSel);
+    if (r && r.ok) {
+      state.me = r.user; $('transferModal').classList.add('hidden');
+      updateMeChip(); renderMaster(); saveBootCache(); confetti();
+      toast('🚀 ' + teamOf(state.me.teamId).short + 'チームに移ったよ！ がんばろう！', 3200);
+      state.sig = ''; refresh(true);
+    } else { err.textContent = (r && r.error) || '移れなかったよ'; err.classList.remove('hidden'); }
+  } catch (e) { err.textContent = 'つながらなかったよ。もう一度ためしてね'; err.classList.remove('hidden'); }
+  btn.disabled = false;
+}
+function celebrateMaster(me) {
+  var t = teamOf(me.teamId);
+  confetti(); toast('🏅 ' + t.short + 'マスター達成！ おめでとう！', 4000);
+  if ((me.mastered || []).length < TEAMS.length) setTimeout(openTransfer, 1800);
+}
+
 function updateMeChip(pts) {
   if (!state.me) { $('meChip').textContent = ''; return; }
   if (pts != null) state.me.totalPoints = pts;
@@ -385,6 +457,7 @@ function applyBundle(b) {
   if (b.posts) state.posts = b.posts;
   if (b.stats) state.stats = b.stats;
   if (b.myPoints != null && state.me) updateMeChip(b.myPoints);
+  if (b.me) applyMe(b.me);
   if (b.postedToday != null) state.postedToday = b.postedToday;
   var sig = JSON.stringify([state.posts, state.stats]);
   if (sig !== state.lastSig) {
@@ -406,6 +479,17 @@ function loadBootCache() {
     var c = JSON.parse(localStorage.getItem('gunpro_boot_v1') || 'null');
     return c && c.token === getToken() && c.r && c.r.user ? c : null;
   } catch (e) { return null; }
+}
+// 登録・引きつぎのあと、投稿の項目やタイムラインを取り直す（登録前は何も返ってこないため）
+async function reloadInit() {
+  try {
+    var r = await callServer('getInitData', getToken());
+    if (r && r.ok && r.user) {
+      state.teamTags = r.teamTags || []; state.sig = r.sig || '';
+      mergeServerStamps(r.myStamps); applyBundle(r); loadPending(); saveBootCache();
+      state.lastRefresh = Date.now();
+    }
+  } catch (e) {}
 }
 async function refresh(force) {
   var now = Date.now();
@@ -497,7 +581,9 @@ async function flushStamps() {
     var r = await writeCall('addStamps', getToken(), items);
     if (!r || !r.ok) throw new Error((r && r.error) || 'ng');
     var msg = '';
-    if (r.gained > 0) { updateMeChip(r.total); toast('👍 スタンプでポイントGET！ +' + r.gained + 'pt', 2200); }
+    if (r.me) applyMe(r.me); else if (r.gained > 0) updateMeChip(r.total);
+    if (r.newlyMastered && r.me) celebrateMaster(r.me);
+    else if (r.gained > 0) toast('👍 スタンプでポイントGET！ +' + r.gained + 'pt', 2200);
     (r.results || []).forEach(function (x, i) {
       var it = items[i]; if (!it || x.ok) return;
       unmarkPressed(it.postId, it.type); delete state.bumped[it.postId + '|' + it.type];
@@ -538,7 +624,7 @@ async function submitReg() {
     if (r && r.ok) {
       setToken(r.token); state.me = r.user; loadMine(); updateMeChip();
       $('regModal').classList.add('hidden'); toast('登録できたよ！ ようこそ ' + state.me.name + ' さん 🎉', 3200);
-      state.lastSig = ''; refresh(true);
+      state.lastSig = ''; reloadInit();
     } else { err.textContent = (r && r.error) || '登録できなかったよ'; err.classList.remove('hidden'); }
   } catch (e) { err.textContent = 'つながらなかったよ。もう一度ためしてね'; err.classList.remove('hidden'); }
   btn.disabled = false; btn.textContent = '登録してはじめる';
@@ -566,7 +652,7 @@ async function submitFix() {
     if (r && r.ok) {
       setToken(r.token); state.me = r.user; loadMine(); updateMeChip();
       $('fixModal').classList.add('hidden'); $('regModal').classList.add('hidden');
-      toast('なおしたよ！', 2600); state.lastSig = ''; refresh(true);
+      toast('なおしたよ！', 2600); state.lastSig = ''; reloadInit();
     } else bad((r && r.error) || 'なおせなかったよ');
   } catch (e) { bad('つながらなかったよ。もう一度ためしてね'); }
   $('fixPin').value = ''; btn.disabled = false;
@@ -616,7 +702,8 @@ async function submitPost() {
       closePost();
       markPostedToday();
       confetti(); toast('🎉 報告ありがとう！ +' + r.gained + 'pt ゲット！', 3200);
-      updateMeChip(r.total);
+      if (r.me) applyMe(r.me); else updateMeChip(r.total);
+      if (r.newlyMastered && r.me) setTimeout(function () { celebrateMaster(r.me); }, 2200);
       state.filter = 0; setChips(); state.lastSig = ''; await refresh(true);
     } else {
       if (r && /もう報告/.test(r.error || '')) { markPostedToday(); closePost(); toast(r.error); }
@@ -629,7 +716,7 @@ function setChips() { renderTeamList(); }
 
 // ============ 新しいバージョンの自動反映 ============
 function busyNow() {
-  var modalOpen = !$('postModal').classList.contains('hidden') || !$('regModal').classList.contains('hidden') || !$('fixModal').classList.contains('hidden');
+  var modalOpen = !$('postModal').classList.contains('hidden') || !$('regModal').classList.contains('hidden') || !$('fixModal').classList.contains('hidden') || !$('transferModal').classList.contains('hidden');
   return modalOpen;
 }
 function showUpdateBar() { $('updateBar').classList.remove('hidden'); }
@@ -668,6 +755,13 @@ document.addEventListener('click', function (e) {
   var t = e.target;
   var chip = t.closest('#chips .chip'); if (chip) { state.filter = +chip.getAttribute('data-f'); setChips(); renderFeed(); return; }
   var st = t.closest('.stamp'); if (st && st.hasAttribute('data-p')) { onStamp(st); return; }
+  if (t.closest('#ttOpen')) { openTransfer(); return; }
+  var ttc = t.closest('.tt-card');
+  if (ttc) {
+    state.ttSel = +ttc.getAttribute('data-tt');
+    document.querySelectorAll('.tt-card').forEach(function (b) { b.classList.toggle('on', b === ttc); });
+    return;
+  }
   var tc = t.closest('.team-card');
   if (tc) {
     state.regTeam = +tc.getAttribute('data-team');
@@ -691,6 +785,8 @@ $('reloadBtn').addEventListener('click', function () {
 $('postClose').addEventListener('click', closePost);
 $('postBtn').addEventListener('click', submitPost);
 $('regBtn').addEventListener('click', submitReg);
+$('ttBtn').addEventListener('click', submitTransfer);
+$('ttClose').addEventListener('click', function () { $('transferModal').classList.add('hidden'); });
 $('openFix1').addEventListener('click', openFix);
 $('meChip').addEventListener('click', openFix);
 $('fixBtn').addEventListener('click', submitFix);
