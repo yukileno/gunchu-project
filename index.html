@@ -66,6 +66,10 @@
   .modal-back { position: fixed; inset: 0; background: rgba(49,46,129,.5); backdrop-filter: blur(3px); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
   .modal-card { background: linear-gradient(180deg, #ffffff, #f5f3ff); width: 100%; max-width: 580px; max-height: 92vh; overflow-y: auto; border-radius: 28px 28px 0 0; padding: 18px 18px 24px; border-top: 6px solid #8b5cf6; animation: popin .3s ease; }
   @media (min-width: 640px) { .modal-back { align-items: center; } .modal-card { border-radius: 28px; border: 3px solid #fff; box-shadow: 0 20px 60px rgba(0,0,0,.35); } }
+  .rank-tab { padding: 8px 0; border-radius: 14px; font-weight: 800; background: #fff; border: 2px solid #e5e7eb; }
+  .rank-tab.on { background: linear-gradient(100deg, #fde68a, #fbbf24); border-color: #f59e0b; }
+  .rank-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .rank-row.mine { background: linear-gradient(100deg, #fef3c7, #fde68a); box-shadow: 0 0 0 3px rgba(245,158,11,.45); }
   .modal-wide { max-width: 1040px; }
   .team-card, .tt-card { position: relative; text-align: left; padding: 12px 14px 12px 16px; border-radius: 18px; background: #fff; border: 3px solid #e5e7eb; border-left: 10px solid var(--c); box-shadow: 0 3px 10px rgba(0,0,0,.08); transition: transform .12s, box-shadow .12s; }
   .team-card:hover, .tt-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.14); }
@@ -120,6 +124,7 @@
   <aside id="side" class="space-y-3">
     <button id="fab" class="cta w-full rounded-3xl py-4 text-xl font-extrabold text-white">✨ ＋ 報告する ✨</button>
     <div id="masterCard" class="glass p-3"></div>
+    <button id="rankBtn" class="glass w-full py-2 text-sm font-extrabold text-amber-600 active:scale-95">🏆 ランキングを見る</button>
     <button id="reloadBtn" class="glass w-full py-2 text-sm font-extrabold text-violet-700 active:scale-95">🔄 新しい投稿を見る</button>
 
     <div class="glass p-3">
@@ -156,6 +161,21 @@
     <div id="regErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
     <button id="regBtn" class="cta mt-4 w-full rounded-2xl py-3 text-lg font-extrabold text-white">登録してはじめる</button>
     <div class="mt-3 text-center"><button id="openFix1" class="text-xs text-gray-500 underline">前に登録したことがある（先生といっしょに引きつぐ）</button></div>
+  </div>
+</div>
+
+<!-- ===== ランキング ===== -->
+<div id="rankModal" class="modal-back hidden" style="z-index:62">
+  <div class="modal-card">
+    <div class="flex items-center justify-between">
+      <div class="text-xl font-extrabold text-amber-600">🏆 ランキング</div>
+      <button id="rankClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">✕ とじる</button>
+    </div>
+    <div class="mt-3 grid grid-cols-2 gap-2">
+      <button class="rank-tab on" data-rt="all">📈 今まで</button>
+      <button class="rank-tab" data-rt="weekly">📅 今週</button>
+    </div>
+    <div id="rankBody" class="mt-3"></div>
   </div>
 </div>
 
@@ -236,7 +256,7 @@ var STAMPS = [
 // ============ 状態 ============
 var state = {
   me: null, tags: [], ng: [], posts: [], stats: null, 
-  filter: 0, mine: {}, bumped: {}, regTeam: 0, ttSel: 0, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
+  filter: 0, mine: {}, bumped: {}, regTeam: 0, ttSel: 0, rankTab: 'all', rankData: null, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
   lastSig: '', lastRefresh: 0, posting: false
 };
 
@@ -388,6 +408,58 @@ function buildStatic() {
   }).join('');
   updateMeChip(); renderMaster();
 }
+// ============ ランキング（30分に1回だけ取りにいく。それ以外は端末に保存した内容を表示）============
+var RANK_MIN = 30;
+function rankKey() { return 'gunpro_rank_v1_' + (state.me ? state.me.uid : 'x'); }
+function loadRank() { try { return JSON.parse(localStorage.getItem(rankKey()) || 'null'); } catch (e) { return null; } }
+function saveRank(o) { try { localStorage.setItem(rankKey(), JSON.stringify(o)); } catch (e) {} }
+function rankRowsHtml(list) {
+  if (!list || !list.length) return '<div class="py-6 text-center text-sm font-bold text-gray-500">まだランクインした人がいないよ</div>';
+  return '<div class="space-y-1.5">' + list.map(function (x) {
+    var t = teamOf(x.t), medal = x.r === 1 ? '🥇' : x.r === 2 ? '🥈' : x.r === 3 ? '🥉' : '';
+    return '<div class="rank-row' + (x.mine ? ' mine' : '') + '">' +
+      '<div class="w-9 flex-none text-center text-lg font-extrabold">' + (medal || x.r) + '</div>' +
+      '<div class="avatar flex h-9 w-9 flex-none items-center justify-center rounded-full text-lg" style="background:' + t.color + '33">' + t.icon + '</div>' +
+      '<div class="min-w-0 flex-1 truncate text-sm font-extrabold">' + x.c + '組 ' + esc(x.n) + '</div>' +
+      '<div class="flex-none text-xs font-bold text-amber-700">🏅 ' + x.m + '</div>' +
+      '<div class="w-16 flex-none text-right text-sm font-extrabold text-emerald-700">' + x.p + 'pt</div></div>';
+  }).join('') + '</div>';
+}
+function renderRank(d, fetchedAt) {
+  var tab = state.rankTab || 'all', list = tab === 'weekly' ? d.weekly : d.all;
+  var me = d.me, mineTxt;
+  if (me && (tab === 'weekly' ? me.wr : me.ar)) {
+    mineTxt = 'あなたは ' + (tab === 'weekly' ? me.wr + '位（' + me.wp : me.ar + '位（' + me.ap) + 'pt）　マスター ' + me.m + ' こ';
+  } else mineTxt = (tab === 'weekly' ? '今週はまだポイントがないよ。報告してみよう！' : 'まだランクインしていないよ。');
+  var wait = Math.max(1, Math.ceil((RANK_MIN * 60000 - (Date.now() - fetchedAt)) / 60000));
+  $('rankBody').innerHTML =
+    '<div class="rounded-2xl bg-white/80 p-2 text-center text-sm font-extrabold text-violet-700">' + mineTxt + '</div>' +
+    '<div class="mt-2 text-xs text-gray-500">' + (tab === 'weekly' ? '今週（月曜から）のポイントの上位' : 'これまでのポイントの上位') + ' ' + (list ? list.length : 0) + '人　🏅＝マスターしたチームの数</div>' +
+    '<div class="mt-2">' + rankRowsHtml(list) + '</div>' +
+    '<div class="mt-3 text-center text-xs text-gray-500">' + d.at + ' のデータ ／ 新しくなるのは約 ' + wait + ' 分後（30分に1回）</div>';
+}
+async function openRank() {
+  if (!state.me) { openReg(); return; }
+  $('rankModal').classList.remove('hidden');
+  var saved = loadRank();
+  if (saved && Date.now() - saved.t < RANK_MIN * 60000) { state.rankData = saved; renderRank(saved.data, saved.t); return; }
+  $('rankBody').innerHTML = '<div class="py-8 text-center font-bold text-gray-500">よみこみ中…</div>';
+  try {
+    var r = await callServer('getRanking', getToken());
+    if (r && r.ok && r.off) { $('rankBody').innerHTML = '<div class="py-8 text-center font-bold text-gray-500">いまはランキングをお休みしているよ</div>'; return; }
+    if (r && r.ok && r.tooSoon) {
+      if (saved) { state.rankData = saved; renderRank(saved.data, saved.t); }
+      else $('rankBody').innerHTML = '<div class="py-8 text-center font-bold text-gray-500">ほかの端末で見たばかりだよ。<br>あと ' + r.waitMin + ' 分ほどしたら見られるよ</div>';
+      return;
+    }
+    if (r && r.ok) { var o = { t: Date.now(), data: r }; saveRank(o); state.rankData = o; renderRank(r, o.t); return; }
+    $('rankBody').innerHTML = '<div class="py-8 text-center font-bold text-gray-500">' + esc((r && r.error) || 'よみこめなかったよ') + '</div>';
+  } catch (e) {
+    if (saved) { state.rankData = saved; renderRank(saved.data, saved.t); }
+    else $('rankBody').innerHTML = '<div class="py-8 text-center font-bold text-gray-500">つながらなかったよ。あとでもう一度ためしてね</div>';
+  }
+}
+
 // ---- マスター（所属チームで MasterPoints をためる → クリア → 次のチームへ移籍）----
 function applyMe(me) {
   if (!me || !state.me) return;
@@ -755,6 +827,13 @@ document.addEventListener('click', function (e) {
   var t = e.target;
   var chip = t.closest('#chips .chip'); if (chip) { state.filter = +chip.getAttribute('data-f'); setChips(); renderFeed(); return; }
   var st = t.closest('.stamp'); if (st && st.hasAttribute('data-p')) { onStamp(st); return; }
+  var rt = t.closest('.rank-tab');
+  if (rt) {
+    state.rankTab = rt.getAttribute('data-rt');
+    document.querySelectorAll('.rank-tab').forEach(function (b) { b.classList.toggle('on', b === rt); });
+    if (state.rankData) renderRank(state.rankData.data, state.rankData.t);
+    return;
+  }
   if (t.closest('#ttOpen')) { openTransfer(); return; }
   var ttc = t.closest('.tt-card');
   if (ttc) {
@@ -786,6 +865,8 @@ $('postClose').addEventListener('click', closePost);
 $('postBtn').addEventListener('click', submitPost);
 $('regBtn').addEventListener('click', submitReg);
 $('ttBtn').addEventListener('click', submitTransfer);
+$('rankBtn').addEventListener('click', openRank);
+$('rankClose').addEventListener('click', function () { $('rankModal').classList.add('hidden'); });
 $('ttClose').addEventListener('click', function () { $('transferModal').classList.add('hidden'); });
 $('openFix1').addEventListener('click', openFix);
 $('meChip').addEventListener('click', openFix);
