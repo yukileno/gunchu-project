@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="tailwind.css">
 <style>
   :root { --c: #10b981; }
+  /* 自分のCSSが display を決めている部品は、hidden で確実にかくす（tailwind.css より後に読まれるため） */
+  .update-bar.hidden, .modal-back.hidden { display: none; }
   html, body { margin: 0; font-family: "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
   body {
     color: #1f2937; min-height: 100vh;
