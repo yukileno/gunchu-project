@@ -164,6 +164,17 @@
   </div>
 </div>
 
+<!-- ===== マイステータス ===== -->
+<div id="statusModal" class="modal-back hidden" style="z-index:61">
+  <div class="modal-card modal-wide">
+    <div class="flex items-center justify-between">
+      <div class="text-xl font-extrabold text-violet-700">📋 マイステータス</div>
+      <button id="stClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">✕ とじる</button>
+    </div>
+    <div id="stBody" class="mt-3"></div>
+  </div>
+</div>
+
 <!-- ===== ランキング ===== -->
 <div id="rankModal" class="modal-back hidden" style="z-index:62">
   <div class="modal-card">
@@ -483,7 +494,36 @@ function renderMaster() {
   if (all) h += '<div class="mt-2 rounded-xl bg-amber-100 p-2 text-center text-sm font-extrabold text-amber-700">👑 全チームマスター！ すごい！</div>';
   else if (done) h += '<button id="ttOpen" class="cta mt-2 w-full rounded-2xl py-2 text-sm font-extrabold text-white">🚀 次のチームにちょうせん！</button>';
   if (badges) h += '<div class="mt-2 text-xs font-bold text-gray-500">もらった称号</div><div class="mt-1 flex flex-wrap gap-1">' + badges + '</div>';
+  h += '<button id="stOpen" class="mt-2 w-full rounded-2xl bg-white py-1.5 text-sm font-extrabold text-violet-700 shadow active:scale-95">📋 ステータスを見る</button>';
   el.innerHTML = h;
+}
+// ---- マイステータス（通信なし。端末にある自分のデータだけで表示）----
+var STATUS_TITLES = [[11, '👑 全チームマスター'], [8, '🌟 レジェンド'], [5, '🔥 エース'], [3, '💪 ベテラン'], [1, '⭐ マスター'], [0, '🌱 はじめの一歩']];
+function openStatus() {
+  var me = state.me; if (!me) { openReg(); return; }
+  var mp = me.masterPoints || 50, list = me.mastered || [];
+  var title = STATUS_TITLES.filter(function (x) { return list.length >= x[0]; })[0][1];
+  var cards = TEAMS.map(function (x) {
+    var got = list.indexOf(x.id) >= 0, now = x.id === me.teamId;
+    var tp = Math.min(me.teamPoints || 0, mp), pct = Math.round(tp / mp * 100);
+    var bg = got ? 'background:' + x.color + ';color:#fff' : now ? 'background:#fff;box-shadow:0 0 0 3px ' + x.color : 'background:#f3f4f6;color:#9ca3af';
+    var foot = got ? '<div class="mt-1 text-xs font-extrabold">✅ マスター達成！</div>'
+      : now ? '<div class="mt-1 h-3 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full" style="width:' + pct + '%;background:' + x.color + '"></div></div><div class="mt-1 text-xs font-bold text-gray-600">いま挑戦中　' + tp + ' / ' + mp + ' pt</div>'
+      : '<div class="mt-1 text-xs font-bold">🔒 まだ</div>';
+    return '<div class="rounded-2xl p-3" style="' + bg + '"><div class="flex items-center gap-2"><span class="text-2xl' + (got || now ? '' : ' grayscale') + '">' + x.icon + '</span>' +
+      '<span class="text-sm font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</span></div>' + foot + '</div>';
+  }).join('');
+  $('stBody').innerHTML =
+    '<div class="rounded-2xl bg-white/80 p-3 text-center">' +
+      '<div class="text-xs font-bold text-gray-500">' + me.classNum + '組 ' + esc(me.name) + ' さん</div>' +
+      '<div class="mt-1 text-2xl font-extrabold text-violet-700">' + title + '</div>' +
+      '<div class="mt-2 grid grid-cols-2 gap-2">' +
+        '<div class="rounded-xl bg-amber-100 p-2"><div class="text-xs font-bold text-amber-700">マスターしたチーム</div><div class="text-2xl font-extrabold text-amber-700">' + list.length + ' <span class="text-sm">/ ' + TEAMS.length + '</span></div></div>' +
+        '<div class="rounded-xl bg-emerald-100 p-2"><div class="text-xs font-bold text-emerald-700">これまでのポイント</div><div class="text-2xl font-extrabold text-emerald-700">' + (me.totalPoints || 0) + ' <span class="text-sm">pt</span></div></div>' +
+      '</div></div>' +
+    '<div class="mt-3 text-sm font-extrabold text-gray-600">チームごとのようす</div>' +
+    '<div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">' + cards + '</div>';
+  $('statusModal').classList.remove('hidden');
 }
 function openTransfer() {
   var me = state.me; if (!me) return;
@@ -788,7 +828,7 @@ function setChips() { renderTeamList(); }
 
 // ============ 新しいバージョンの自動反映 ============
 function busyNow() {
-  var modalOpen = !$('postModal').classList.contains('hidden') || !$('regModal').classList.contains('hidden') || !$('fixModal').classList.contains('hidden') || !$('transferModal').classList.contains('hidden');
+  var modalOpen = !$('postModal').classList.contains('hidden') || !$('regModal').classList.contains('hidden') || !$('fixModal').classList.contains('hidden') || !$('transferModal').classList.contains('hidden') || !$('statusModal').classList.contains('hidden');
   return modalOpen;
 }
 function showUpdateBar() { $('updateBar').classList.remove('hidden'); }
@@ -834,6 +874,7 @@ document.addEventListener('click', function (e) {
     if (state.rankData) renderRank(state.rankData.data, state.rankData.t);
     return;
   }
+  if (t.closest('#stOpen')) { openStatus(); return; }
   if (t.closest('#ttOpen')) { openTransfer(); return; }
   var ttc = t.closest('.tt-card');
   if (ttc) {
@@ -866,6 +907,7 @@ $('postBtn').addEventListener('click', submitPost);
 $('regBtn').addEventListener('click', submitReg);
 $('ttBtn').addEventListener('click', submitTransfer);
 $('rankBtn').addEventListener('click', openRank);
+$('stClose').addEventListener('click', function () { $('statusModal').classList.add('hidden'); });
 $('rankClose').addEventListener('click', function () { $('rankModal').classList.add('hidden'); });
 $('ttClose').addEventListener('click', function () { $('transferModal').classList.add('hidden'); });
 $('openFix1').addEventListener('click', openFix);
