@@ -697,6 +697,12 @@ $('fixBtn').addEventListener('click', submitFix);
 $('fixClose').addEventListener('click', function () { $('fixModal').classList.add('hidden'); });
 $('updateNow').addEventListener('click', reloadApp);
 
+// 古い画面（Apps Script のアドレス）から引きつがれた本人のトークンを受け取る
+(function () {
+  var m = /[#&]mig=([0-9a-f-]{36})/.exec(location.hash || '');
+  if (m) { setToken(m[1]); }
+  if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+})();
 boot();
 </script>
 </body>
