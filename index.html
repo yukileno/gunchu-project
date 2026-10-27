@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>郡中プロジェクト</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%9F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="tailwind.css">
+<style>
+  :root { --c: #10b981; }
+  html, body { margin: 0; font-family: "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body {
+    color: #1f2937; min-height: 100vh;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(255,214,102,.55) 0, transparent 38%),
+      radial-gradient(circle at 92% 8%, rgba(255,153,204,.45) 0, transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(120,200,255,.55) 0, transparent 42%),
+      radial-gradient(circle at 10% 92%, rgba(130,235,190,.55) 0, transparent 40%),
+      #f3f0ff;
+    background-attachment: fixed;
+  }
+  /* ヘッダー */
+  .hero { position: relative; overflow: hidden; background: linear-gradient(110deg, #10b981, #06b6d4 35%, #8b5cf6 70%, #ec4899, #10b981); background-size: 200% 100%; animation: flow 10s linear infinite; box-shadow: 0 4px 18px rgba(139,92,246,.35); }
+  @keyframes flow { 0% { background-position: 0 0; } 100% { background-position: 200% 0; } }
+  .hero::before { content: "✨   ⭐   ✨   🌟   ✨   ⭐   ✨   🌟   ✨   ⭐   ✨   🌟   ✨   ⭐   ✨   🌟   ✨"; position: absolute; inset: 0; white-space: nowrap; font-size: 13px; line-height: 52px; opacity: .45; letter-spacing: 38px; animation: drift 24s linear infinite; pointer-events: none; }
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-240px); } }
+  .title-glow { text-shadow: 0 2px 0 rgba(0,0,0,.18), 0 0 14px rgba(255,255,255,.7); letter-spacing: .04em; }
+  /* カード */
+  .glass { background: rgba(255,255,255,.82); backdrop-filter: blur(8px); border: 2px solid rgba(255,255,255,.9); box-shadow: 0 6px 20px rgba(99,102,241,.14); border-radius: 24px; }
+  /* 報告ボタン */
+  .cta { position: relative; overflow: hidden; background: linear-gradient(100deg, #f59e0b, #ec4899 45%, #8b5cf6, #f59e0b); background-size: 200% 100%; animation: flow 6s linear infinite, glow 2.2s ease-in-out infinite; box-shadow: 0 6px 0 #a21caf, 0 10px 24px rgba(236,72,153,.45); transition: transform .12s, box-shadow .12s; }
+  .cta:active { transform: translateY(5px); box-shadow: 0 1px 0 #a21caf, 0 4px 10px rgba(236,72,153,.45); }
+  .cta::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.65), transparent); transform: skewX(-20deg); animation: shine 3s ease-in-out infinite; }
+  @keyframes shine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+  @keyframes glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
+  /* チーム行 */
+  .chip { display: block; width: 100%; text-align: left; padding: 6px 10px 7px; border-radius: 14px; font-size: 13px; background: #fff; border: 2px solid transparent; border-left: 6px solid var(--c); box-shadow: 0 2px 6px rgba(0,0,0,.07); transition: transform .12s, box-shadow .12s; }
+  .chip:hover { transform: translateX(3px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+  .chip.on { background: linear-gradient(100deg, var(--c), color-mix(in srgb, var(--c) 60%, #fff)); color: #fff; font-weight: 800; border-left-color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 55%, transparent); }
+  .chip.on .track { background: rgba(255,255,255,.35) !important; }
+  .chip.on .track > div { background: #fff !important; }
+  /* タイムライン */
+  .chat-bg { background: linear-gradient(180deg, rgba(205,238,221,.9) 0%, rgba(214,236,255,.9) 55%, rgba(236,222,255,.9) 100%); border-radius: 24px; padding: 14px 12px; min-height: 240px; border: 2px solid rgba(255,255,255,.9); box-shadow: inset 0 0 30px rgba(255,255,255,.5), 0 6px 20px rgba(99,102,241,.14); }
+  .bubble { position: relative; padding: 9px 13px; border-radius: 20px; max-width: 100%; word-break: break-word; box-shadow: 0 3px 10px rgba(0,0,0,.1); }
+  .bubble.fresh { animation: popin .4s ease both; }
+  .bubble.other { background: #fff; border-top-left-radius: 5px; }
+  .bubble.mine { background: linear-gradient(135deg, #c7ecff, #a5d8ff); border-top-right-radius: 5px; }
+  @keyframes popin { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+  .avatar { box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.18); }
+  /* スタンプ */
+  .stamp { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: #fff; border: 2px solid #e5e7eb; font-size: 12px; line-height: 1.2; cursor: pointer; user-select: none; transition: transform .1s, box-shadow .15s; box-shadow: 0 2px 5px rgba(0,0,0,.08); }
+  .stamp:hover { box-shadow: 0 0 0 3px rgba(251,191,36,.35); }
+  .stamp:active { transform: scale(.9); }
+  .stamp.on { background: linear-gradient(135deg, #fde68a, #fbbf24); border-color: #f59e0b; font-weight: 800; box-shadow: 0 0 12px rgba(251,191,36,.75); }
+  .stamp.off { opacity: .6; cursor: default; box-shadow: none; }
+  .stamp.off:hover { box-shadow: none; }
+  .stamp.pop { animation: pop .5s ease; }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.5) rotate(-8deg); } 100% { transform: scale(1); } }
+  /* 選択肢・入力・モーダル */
+  .tag-btn { display: block; width: 100%; text-align: left; padding: 11px 14px; border-radius: 16px; border: 2px solid #e5e7eb; background: #fff; font-size: 15px; transition: transform .1s, background .15s; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+  .tag-btn:active { transform: scale(.98); }
+  .tag-btn.on { border-color: #10b981; background: linear-gradient(100deg, #d1fae5, #cffafe); font-weight: 800; box-shadow: 0 0 0 3px rgba(16,185,129,.25); }
+  .tag-btn.on::before { content: "✅ "; }
+  .modal-back { position: fixed; inset: 0; background: rgba(49,46,129,.5); backdrop-filter: blur(3px); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+  .modal-card { background: linear-gradient(180deg, #ffffff, #f5f3ff); width: 100%; max-width: 580px; max-height: 92vh; overflow-y: auto; border-radius: 28px 28px 0 0; padding: 18px 18px 24px; border-top: 6px solid #8b5cf6; animation: popin .3s ease; }
+  @media (min-width: 640px) { .modal-back { align-items: center; } .modal-card { border-radius: 28px; border: 3px solid #fff; box-shadow: 0 20px 60px rgba(0,0,0,.35); } }
+  .modal-wide { max-width: 1040px; }
+  .team-card { position: relative; text-align: left; padding: 12px 14px 12px 16px; border-radius: 18px; background: #fff; border: 3px solid #e5e7eb; border-left: 10px solid var(--c); box-shadow: 0 3px 10px rgba(0,0,0,.08); transition: transform .12s, box-shadow .12s; }
+  .team-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.14); }
+  .team-card.on { background: linear-gradient(120deg, color-mix(in srgb, var(--c) 18%, #fff), #fff); border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent), 0 10px 22px rgba(0,0,0,.15); transform: scale(1.02); }
+  .team-card.on::after { content: "✅ えらんだ！"; position: absolute; top: 8px; right: 10px; font-size: 12px; font-weight: 800; color: #fff; background: var(--c); padding: 2px 10px; border-radius: 999px; }
+  .field { width: 100%; border: 2px solid #d1d5db; border-radius: 14px; padding: 10px; font-size: 16px; background: #fff; }
+  .field:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
+  .update-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 90; background: linear-gradient(90deg, #f59e0b, #ef4444); color: #fff; padding: 10px 12px; display: flex; gap: 10px; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .update-bar button { background: #fff; color: #b45309; border-radius: 999px; padding: 4px 14px; font-weight: 700; }
+  .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: linear-gradient(90deg, #6366f1, #ec4899); color: #fff; padding: 12px 20px; border-radius: 999px; font-size: 15px; font-weight: 800; z-index: 100; max-width: 90vw; text-align: center; box-shadow: 0 8px 24px rgba(99,102,241,.5); }
+  /* 紙吹雪 */
+  .confetti { position: fixed; top: -30px; z-index: 110; pointer-events: none; font-size: 26px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(540deg); opacity: .9; } }
+  @media (min-width: 900px) {
+    html, body { height: 100%; overflow: hidden; }
+    #layout { height: calc(100vh - 52px); }
+    #side, #feedWrap { height: 100%; overflow-y: auto; }
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(139,92,246,.4); border-radius: 10px; }
+
+</style>
+</head>
+<body>
+
+<div id="loading" class="fixed inset-0 z-[120] flex flex-col items-center justify-center" style="background:linear-gradient(135deg,#d1fae5,#e0e7ff,#fce7f3)">
+  <div class="text-6xl animate-bounce">💬</div>
+  <div class="mt-3 text-lg font-bold text-emerald-700">よみこみ中…</div>
+</div>
+
+<div id="fatal" class="hidden fixed inset-0 z-[110] flex-col items-center justify-center bg-[#e6f4ea] p-6 text-center">
+  <div class="text-6xl">🙇</div>
+  <div id="fatalMsg" class="mt-3 text-base font-bold text-gray-700"></div>
+  <button onclick="location.reload()" class="mt-5 rounded-full bg-emerald-500 px-6 py-2 font-bold text-white">もう一度ひらく</button>
+</div>
+
+<div id="updateBar" class="update-bar hidden">
+  <span>🆕 新しいバージョンがあるよ</span>
+  <button id="updateNow">いま更新する</button>
+</div>
+
+<header class="hero z-40 text-white" style="height:52px">
+  <div class="relative flex h-full items-center justify-between px-4">
+    <div class="title-glow text-lg font-extrabold">🌟 郡中プロジェクト 🌟</div>
+    <button id="meChip" title="登録をなおす（先生用）" class="rounded-full bg-white/30 px-4 py-1.5 text-sm font-extrabold shadow ring-2 ring-white/60"></button>
+  </div>
+</header>
+
+<main id="layout" class="grid gap-3 p-3 lg:grid-cols-[320px_1fr]">
+
+  <!-- 左：ゲージ・報告ボタン・チーム絞りこみ -->
+  <aside id="side" class="space-y-3">
+    <button id="fab" class="cta w-full rounded-3xl py-4 text-xl font-extrabold text-white">✨ ＋ 報告する ✨</button>
+    <button id="reloadBtn" class="glass w-full py-2 text-sm font-extrabold text-violet-700 active:scale-95">🔄 新しい投稿を見る</button>
+
+    <div class="glass p-3">
+      <div class="mb-2 text-sm font-extrabold text-violet-700">🏅 各チームのようす（一人平均ポイント）</div>
+      <div id="chips" class="flex flex-col gap-1.5"></div>
+    </div>
+  </aside>
+
+  <!-- 右：タイムライン -->
+  <section id="feedWrap" class="rounded-3xl">
+    <div id="feed" class="chat-bg space-y-3" style="min-height:100%"></div>
+  </section>
+</main>
+
+<!-- ===== 初回登録モーダル ===== -->
+<div id="regModal" class="modal-back hidden">
+  <div class="modal-card modal-wide">
+    <div class="text-center text-2xl font-extrabold text-emerald-700">👋 はじめまして！ 自分のことを教えてね</div>
+    <div class="mt-1 text-center text-sm text-gray-600">最初に1回だけ。登録したあとは自分で直せないので、まちがえないでね（メールアドレスは集めていません）。</div>
+
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div><label class="mb-1 block text-sm font-bold">組</label><select id="regClass" class="field"></select></div>
+      <div><label class="mb-1 block text-sm font-bold">出席番号</label><select id="regNum" class="field"></select></div>
+      <div class="col-span-2"><label class="mb-1 block text-sm font-bold">名前（ニックネームでもOK）</label>
+        <input id="regName" class="field" maxlength="12" placeholder="例：さくら"></div>
+    </div>
+
+    <div class="mt-5 text-lg font-extrabold text-violet-700">🏅 どのチームで活やくする？</div>
+    <div class="text-sm text-gray-600">どんなチームか、よく読んで、じっくり考えて1つえらぼう。</div>
+    <div id="regTeamGrid" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+    <div class="mt-5 sm:max-w-sm"><label class="mb-1 block text-sm font-bold">あいことば（先生に聞いてね）</label>
+      <input id="regCode" class="field" maxlength="20" autocomplete="off" placeholder="ひらがなで入れてね"></div>
+    <div id="regErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
+    <button id="regBtn" class="cta mt-4 w-full rounded-2xl py-3 text-lg font-extrabold text-white">登録してはじめる</button>
+    <div class="mt-3 text-center"><button id="openFix1" class="text-xs text-gray-500 underline">前に登録したことがある（先生といっしょに引きつぐ）</button></div>
+  </div>
+</div>
+
+<!-- ===== 登録の修正・引きつぎ（先生PIN） ===== -->
+<div id="fixModal" class="modal-back hidden" style="z-index:70">
+  <div class="modal-card">
+    <div class="flex items-center justify-between">
+      <div class="text-lg font-extrabold text-amber-600">🔧 登録をなおす・引きつぐ</div>
+      <button id="fixClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">✕ とじる</button>
+    </div>
+    <div class="mt-1 text-sm text-gray-600">先生がいっしょのときだけ使ってね。なおしたい内容を入れて、先生が4けたのPINを入力します。<br>端末が変わったときは、同じ組・番号で入れると記録を引きつげます。</div>
+    <div class="mt-3 grid grid-cols-2 gap-3">
+      <div><label class="mb-1 block text-sm font-bold">組</label><select id="fixClass" class="field"></select></div>
+      <div><label class="mb-1 block text-sm font-bold">出席番号</label><select id="fixNum" class="field"></select></div>
+    </div>
+    <div class="mt-3"><label class="mb-1 block text-sm font-bold">名前</label><input id="fixName" class="field" maxlength="12"></div>
+    <div class="mt-3"><label class="mb-1 block text-sm font-bold">所属チーム</label><select id="fixTeam" class="field"></select></div>
+    <div class="mt-3"><label class="mb-1 block text-sm font-bold">先生のPIN（4けた）</label>
+      <input id="fixPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" class="field" placeholder="••••"></div>
+    <div id="fixErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
+    <button id="fixBtn" class="mt-4 w-full rounded-2xl bg-amber-500 py-3 text-base font-extrabold text-white active:scale-95">この内容にする</button>
+  </div>
+</div>
+
+<!-- ===== 投稿モーダル ===== -->
+<div id="postModal" class="modal-back hidden">
+  <div class="modal-card">
+    <div class="flex items-center justify-between">
+      <div class="text-lg font-extrabold text-emerald-700">📣 活動を報告する</div>
+      <button id="postClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">✕ とじる</button>
+    </div>
+    <div id="postTeam" class="mt-1 text-xs text-gray-500"></div>
+    <div class="mt-3 text-sm font-bold">今日できたことを、あてはまるものぜんぶえらぼう（1つ1ポイント・最大5）</div>
+    <div id="tagList" class="mt-2 space-y-2"></div>
+    <div class="mt-2 text-right text-sm font-bold text-emerald-700">えらんだ数：<span id="tagCount">0</span>こ（<span id="tagPts">0</span>pt）</div>
+    <div id="postErr" class="mt-2 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
+    <div class="mt-2 text-xs text-gray-500">※報告は1日1回までだよ。自分ができたことだけえらんでね。</div>
+    <button id="postBtn" class="mt-3 w-full cta rounded-2xl py-3 text-base font-extrabold text-white active:scale-95">報告する</button>
+  </div>
+</div>
+
+<script>
+// ============ マスターデータ ============
+var CIRCLED = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪'];
+var TEAMS = [
+  { id:1, icon:'🚶', short:'ろうか',   name:'ろうか「静かに右側」マスターチーム', desc:'「おしゃべりゼロ・右側歩行」の廊下をつくる！',           q:'ろうかを静かに右側で歩けた？',       color:'#3b82f6' },
+  { id:2, icon:'🏃', short:'休み時間', name:'休み時間・教室セーフティチーム',     desc:'走らずに教室で楽しく過ごせる空間を企画する！',       q:'休み時間、走らず安全にすごせた？',   color:'#f97316' },
+  { id:3, icon:'🚻', short:'トイレ',   name:'トイレ静か＆快適チーム',             desc:'感謝ポスターなどで、しゃべらず落ち着けるトイレをつくる！',         q:'トイレを静かに気持ちよく使えた？',   color:'#14b8a6' },
+  { id:4, icon:'💬', short:'言葉',     name:'あったか言葉＆トークチーム',         desc:'優しい言葉を集めて紹介したり、「かっこいい5年生語・変換辞典」をつくったりする！', q:'やさしい言葉をつかえた？',           color:'#ec4899' },
+  { id:5, icon:'🕊️', short:'ピース',   name:'ピース（仲良し・冷静）チーム',       desc:'イラッとした時に手が出るのを防ぐ「クールダウンの技」を図解や動画で広める！',  q:'たたかず、冷静にすごせた？',         color:'#8b5cf6' },
+  { id:6, icon:'🎒', short:'持ち物',   name:'持ち物＆スマート身だしなみチーム',   desc:'明日の持ち物画面を出したり、不要物ゼロ・身だしなみ・名札の3秒チェックを広めたりする！', q:'忘れ物なし・身だしなみOKだった？',   color:'#eab308' },
+  { id:7, icon:'🍚', short:'給食',     name:'給食モグモグ（残食ゼロ）チーム',     desc:'無理なくおいしく完食できる工夫をする！',             q:'給食を残さず食べられた？',           color:'#ef4444' },
+  { id:8, icon:'📖', short:'静読',     name:'給食「静読（せいどく）」チーム',     desc:'4時間目終了後にすぐ本を開いて静かに待つ空気をつくる！', q:'すぐ本を開いて静かに待てた？',       color:'#22c55e' },
+  { id:9, icon:'🏫', short:'下校',     name:'スマート下校（徒歩・電車）チーム',   desc:'徒歩も電車も「さすが5年生」な帰り方をつくる！',     q:'下校中、安全にマナーよく帰れた？',   color:'#78716c' },
+  { id:10, icon:'👋', short:'あいさつ', name:'あいさつ日本一チーム',               desc:'５年生から郡中小を活気づける！',                     q:'', color:'#06b6d4' },
+  { id:11, icon:'📱', short:'SNS',      name:'SNS見守り隊',                         desc:'SNSを正しく使いたいな！',                 q:'', color:'#6366f1' }
+];
+var STAMPS = [
+  { key:'like',   emoji:'👍', label:'いいね' },
+  { key:'nice',   emoji:'✨', label:'ナイス工夫' },
+  { key:'thanks', emoji:'🙏', label:'ありがとう' },
+  { key:'fire',   emoji:'🔥', label:'マネしたい' }
+];
+// ============ 状態 ============
+var state = {
+  me: null, tags: [], ng: [], posts: [], stats: null, 
+  filter: 0, mine: {}, bumped: {}, regTeam: 0, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
+  lastSig: '', lastRefresh: 0, posting: false
+};
+
+// ============ ユーティリティ ============
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function confetti() {
+  var em = ['🎉','✨','⭐','🌟','💖','🎊','🌈','🍀'];
+  for (var i = 0; i < 36; i++) {
+    var e = document.createElement('div');
+    e.className = 'confetti'; e.textContent = em[i % em.length];
+    e.style.left = Math.random() * 100 + 'vw';
+    e.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+    e.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(e);
+    setTimeout(function (x) { x.remove(); }.bind(null, e), 4000);
+  }
+}
+function toast(msg, ms) {
+  var old = document.querySelector('.toast'); if (old) old.remove();
+  var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function () { t.remove(); }, ms || 2600);
+}
+// データの出し入れは Google Apps Script（API）に送る。画面そのものは GitHub Pages から配られる
+var API_URL = 'https://script.google.com/macros/s/AKfycbxT6Jjil7opkd7scCr2HgE6b4g2WmrEtSXzb8WAM6prJtJSV_MCD07MFLpdM508BTzopQ/exec';
+function callServer(name) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  // text/plain で送ると、事前確認（preflight）なしで通る
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: name, args: args }) })
+    .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+}
+// 書き込み系：サーバーが混み合っていたら少し待って再試行
+async function writeCall(name) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  var r;
+  for (var i = 0; i < 3; i++) {
+    r = await callServer.apply(null, [name].concat(args));
+    if (r && r.code === 'BUSY' && i < 2) { await sleep(1200 + Math.random() * 1800); continue; }
+    break;
+  }
+  return r;
+}
+function teamOf(id) { return TEAMS[(id || 1) - 1] || TEAMS[0]; }
+function teamLabel(t) { return CIRCLED[t.id - 1] + ' ' + t.name; }
+function fmtTs(ts) { return String(ts || '').substring(5, 16).replace('-', '/'); }
+
+// ---- 端末に保存する本人トークン（メールは使わない）----
+function getToken() { try { return localStorage.getItem('gunpro_token_v1') || ''; } catch (e) { return ''; } }
+function setToken(t) { try { localStorage.setItem('gunpro_token_v1', t); } catch (e) {} }
+
+// ---- 「今日は報告ずみ」を端末で覚える（毎回サーバーにきかない）----
+function jstToday() { return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); }
+function postedKey() { return 'gunpro_posted_v1_' + (state.me ? state.me.uid : 'x'); }
+function markPostedToday() { state.postedToday = true; try { localStorage.setItem(postedKey(), jstToday()); } catch (e) {} }
+function isPostedToday() {
+  if (state.postedToday) { markPostedToday(); return true; }
+  try { return localStorage.getItem(postedKey()) === jstToday(); } catch (e) { return false; }
+}
+
+// ---- localStorage（スタンプ押下済み記録）----
+function storeKey() { return 'gunpro_stamps_v1_' + (state.me ? state.me.uid : 'x'); }
+function loadMine() {
+  try { state.mine = JSON.parse(localStorage.getItem(storeKey()) || '{}') || {}; } catch (e) { state.mine = {}; }
+}
+function saveMine() {
+  try {
+    var keys = Object.keys(state.mine);
+    if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(function (k) { delete state.mine[k]; });
+    localStorage.setItem(storeKey(), JSON.stringify(state.mine));
+  } catch (e) {}
+}
+function isPressed(postId, type) { return (state.mine[postId] || []).indexOf(type) >= 0; }
+function markPressed(postId, type) {
+  var a = state.mine[postId] || [];
+  if (a.indexOf(type) < 0) a.push(type);
+  delete state.mine[postId]; // 新しい順を保つため入れ直す
+  state.mine[postId] = a;
+  saveMine();
+}
+function unmarkPressed(postId, type) {
+  var a = (state.mine[postId] || []).filter(function (t) { return t !== type; });
+  if (a.length) state.mine[postId] = a; else delete state.mine[postId];
+  saveMine();
+}
+function mergeServerStamps(list) {
+  (list || []).forEach(function (s) {
+    var p = s.split('|');
+    if (p.length === 2 && !isPressed(p[0], p[1])) {
+      var a = state.mine[p[0]] || []; a.push(p[1]); state.mine[p[0]] = a;
+    }
+  });
+  saveMine();
+}
+
+// ============ 起動 ============
+async function boot() {
+  try {
+    var token = getToken();
+    var cached = token ? loadBootCache() : null;
+    var r, fromCache = false;
+    if (cached && Date.now() - cached.t < 45000) { r = cached.r; fromCache = true; }   // 連続リロードはサーバーに行かない
+    else {
+      r = await callServer('getInitData', token);
+      if ((!r || !r.ok) && r && r.code === 'SLOW' && cached) { r = cached.r; fromCache = true; }
+      else if (!r || !r.ok) { showFatal((r && r.error) || 'よみこめませんでした。'); return; }
+    }
+    state.me = r.user; state.teamTags = r.teamTags || []; state.ng = r.ngWords || [];
+    buildStatic();
+    if (state.me) { loadMine(); mergeServerStamps(r.myStamps); loadPending(); }
+    state.sig = r.sig || '';
+    applyBundle(r);
+    state.lastRefresh = fromCache ? cached.t : Date.now();
+    if (!fromCache) saveBootCache();
+    $('loading').classList.add('hidden');
+    if (!state.me) openReg();
+    startTimers();
+  } catch (e) {
+    showFatal('つながりませんでした。ネットワークを確認してね。');
+  }
+}
+function showFatal(msg) {
+  $('loading').classList.add('hidden');
+  $('fatalMsg').textContent = msg;
+  $('fatal').classList.remove('hidden'); $('fatal').classList.add('flex');
+}
+
+function buildStatic() {
+  // チームフィルタ
+  renderTeamList();
+  // 登録フォーム
+  var c = '<option value="">えらぶ</option>'; for (var i = 1; i <= 5; i++) c += '<option value="' + i + '">' + i + '組</option>';
+  $('regClass').innerHTML = c; $('fixClass').innerHTML = c;
+  var n = '<option value="">えらぶ</option>'; for (var j = 1; j <= 40; j++) n += '<option value="' + j + '">' + j + '番</option>';
+  $('regNum').innerHTML = n; $('fixNum').innerHTML = n;
+  var t = '<option value="">えらぶ</option>';
+  TEAMS.forEach(function (x) { t += '<option value="' + x.id + '">' + esc(teamLabel(x)) + '</option>'; });
+  $('fixTeam').innerHTML = t;
+  $('regTeamGrid').innerHTML = TEAMS.map(function (x) {
+    return '<button type="button" class="team-card" data-team="' + x.id + '" style="--c:' + x.color + '">' +
+      '<div class="flex items-center gap-2"><span class="text-3xl">' + x.icon + '</span>' +
+      '<span class="text-base font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.name) + '</span></div>' +
+      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div></button>';
+  }).join('');
+  updateMeChip();
+}
+function updateMeChip(pts) {
+  if (!state.me) { $('meChip').textContent = ''; return; }
+  if (pts != null) state.me.totalPoints = pts;
+  var t = teamOf(state.me.teamId);
+  $('meChip').textContent = t.icon + ' ' + state.me.name + '　' + (state.me.totalPoints || 0) + 'pt';
+}
+
+// ============ データ反映 ============
+function applyBundle(b) {
+  if (b.posts) state.posts = b.posts;
+  if (b.stats) state.stats = b.stats;
+  if (b.myPoints != null && state.me) updateMeChip(b.myPoints);
+  if (b.postedToday != null) state.postedToday = b.postedToday;
+  var sig = JSON.stringify([state.posts, state.stats]);
+  if (sig !== state.lastSig) {
+    state.lastSig = sig;
+    renderTeamList(); renderFeed();
+  }
+}
+// ---- 起動データの一時保存（連続リロード対策）----
+function saveBootCache() {
+  if (!state.me) return;
+  try {
+    localStorage.setItem('gunpro_boot_v1', JSON.stringify({ t: Date.now(), token: getToken(), r: {
+      user: state.me, teamTags: state.teamTags, ngWords: state.ng,
+      sig: state.sig, posts: state.posts, stats: state.stats, myPoints: state.me.totalPoints, postedToday: state.postedToday } }));
+  } catch (e) {}
+}
+function loadBootCache() {
+  try {
+    var c = JSON.parse(localStorage.getItem('gunpro_boot_v1') || 'null');
+    return c && c.token === getToken() && c.r && c.r.user ? c : null;
+  } catch (e) { return null; }
+}
+async function refresh(force) {
+  var now = Date.now();
+  if (!state.me || (!force && now - state.lastRefresh < 20000)) return;
+  state.lastRefresh = now;
+  try {
+    var b = await callServer('getTimelineData', getToken(), state.sig);
+    if (b && b.ok) {
+      if (b.same) { applyBundle({ myPoints: b.myPoints, postedToday: b.postedToday }); }
+      else { state.sig = b.sig; mergeServerStamps(b.myStamps); applyBundle(b); saveBootCache(); }
+    }
+  } catch (e) {}
+}
+
+// ============ 描画：ゲージ ============
+// チームは人数がちがうので、ポイントは「一人平均」（合計 ÷ 登録人数）でくらべる
+function avgOf(t) { return t && t.members ? t.points / t.members : 0; }
+function renderTeamList() {
+  var teams = state.stats ? state.stats.teams : [];
+  var max = Math.max(1, Math.max.apply(null, teams.map(avgOf).concat([0])));
+  var h = '<button class="chip' + (state.filter === 0 ? ' on' : '') + '" data-f="0" style="--c:#8b5cf6;font-weight:800">🌟 ぜんぶ</button>';
+  TEAMS.forEach(function (tm) {
+    var st = teams[tm.id - 1] || { points: 0, posts: 0, members: 0 };
+    var avg = avgOf(st);
+    h += '<button class="chip' + (state.filter === tm.id ? ' on' : '') + '" data-f="' + tm.id + '" style="--c:' + tm.color + '">' +
+      '<div class="flex items-center justify-between gap-2"><span class="truncate">' + tm.icon + ' ' + CIRCLED[tm.id - 1] + ' ' + esc(tm.short) + '</span>' +
+      '<span class="flex-none text-xs">一人平均 ' + (Math.round(avg * 10) / 10) + 'pt ・ 👥' + st.members + '人</span></div>' +
+      '<div class="track mt-1 h-2 overflow-hidden rounded-full bg-black/10"><div class="h-full rounded-full" style="width:' + Math.round(avg / max * 100) + '%;background:' + tm.color + ';transition:width .8s"></div></div></button>';
+  });
+  $('chips').innerHTML = h;
+}
+
+// ============ 描画：タイムライン ============
+function countOf(p, key) {
+  var base = p[key] || 0;
+  var b = state.bumped[p.id + '|' + key];
+  return b != null && b > base ? b : base;
+}
+function renderFeed() {
+  var list = state.posts.filter(function (p) { return !state.filter || p.teamId === state.filter; });
+  if (!list.length) {
+    $('feed').innerHTML = '<div class="py-10 text-center text-sm font-bold text-gray-500">まだ投稿がないよ。<br>さいしょの報告をしてみよう！ ✨</div>';
+    return;
+  }
+  var firstDraw = !state.drawn; state.drawn = true;
+  $('feed').innerHTML = list.map(function (p) {
+    var t = teamOf(p.teamId), mine = state.me && p.uid === state.me.uid;
+    var fresh = !firstDraw && !state.seen[p.id]; state.seen[p.id] = 1;
+    var stamps = STAMPS.map(function (s) {
+      var on = isPressed(p.id, s.key);
+      return '<span class="stamp ' + (on ? 'on ' : '') + (mine ? 'off' : '') + '" data-p="' + esc(p.id) + '" data-s="' + s.key + '">' +
+        s.emoji + '<span class="hidden sm:inline">' + s.label + '</span><b class="cnt">' + countOf(p, s.key) + '</b></span>';
+    }).join('');
+    var avatar = '<div class="avatar flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl text-white" style="background:linear-gradient(135deg,' + t.color + ',' + t.color + 'aa)">' + t.icon + '</div>';
+    var body =
+      '<div class="min-w-0 max-w-[82%]">' +
+      '<div class="mb-0.5 flex flex-wrap items-center gap-1 text-xs ' + (mine ? 'justify-end' : '') + '">' +
+      '<span class="font-bold text-gray-700">' + p.classNum + '組 ' + esc(p.name) + '</span>' +
+      '<span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:' + t.color + '">' + CIRCLED[t.id - 1] + t.short + '</span></div>' +
+      '<div class="bubble ' + (mine ? 'mine' : 'other') + (fresh ? ' fresh' : '') + '"' + (mine ? '' : ' style="border-left:5px solid ' + t.color + '"') + '>' +
+      '<div class="mb-1 flex flex-col gap-1">' + String(p.tag).split('|').map(function (x) {
+        return '<div style="background:' + t.color + '22;border:1.5px solid ' + t.color + '66" class="rounded-xl px-2.5 py-1 text-sm font-extrabold text-gray-800">✅ ' + esc(x) + '</div>';
+      }).join('') + '</div>' +
+      (p.comment ? '<div class="text-[15px] leading-snug">' + esc(p.comment) + '</div>' : '') +
+      '<div class="mt-1 text-right text-[10px] text-gray-400">' + fmtTs(p.ts) + '</div></div>' +
+      '<div class="mt-1 flex flex-wrap gap-1.5 ' + (mine ? 'justify-end' : '') + '">' + stamps + '</div></div>';
+    return '<div class="flex gap-2 ' + (mine ? 'flex-row-reverse' : '') + '">' + avatar + body + '</div>';
+  }).join('');
+}
+
+// スタンプ押下：画面はすぐ変え、サーバーへは数秒ためてまとめて送る（通信を減らす）
+var pendingStamps = [], flushTimer = null, flushing = false;
+function pendKey() { return 'gunpro_pending_v1_' + (state.me ? state.me.uid : 'x'); }
+function savePending() { try { localStorage.setItem(pendKey(), JSON.stringify(pendingStamps)); } catch (e) {} }
+function loadPending() {
+  try { pendingStamps = JSON.parse(localStorage.getItem(pendKey()) || '[]') || []; } catch (e) { pendingStamps = []; }
+  if (pendingStamps.length) scheduleFlush(1500);
+}
+function scheduleFlush(ms) {
+  if (flushTimer) return;
+  flushTimer = setTimeout(function () { flushTimer = null; flushStamps(); }, ms == null ? 6000 + Math.random() * 6000 : ms);   // いっせいに送らないよう、少しばらつかせる
+}
+async function flushStamps() {
+  if (flushing || !pendingStamps.length) return;
+  flushing = true;
+  var items = pendingStamps.splice(0, pendingStamps.length);
+  savePending();
+  try {
+    var r = await writeCall('addStamps', getToken(), items);
+    if (!r || !r.ok) throw new Error((r && r.error) || 'ng');
+    var msg = '';
+    if (r.gained > 0) { updateMeChip(r.total); toast('👍 スタンプでポイントGET！ +' + r.gained + 'pt', 2200); }
+    (r.results || []).forEach(function (x, i) {
+      var it = items[i]; if (!it || x.ok) return;
+      unmarkPressed(it.postId, it.type); delete state.bumped[it.postId + '|' + it.type];
+      msg = x.error || 'スタンプがおくれなかったよ';
+    });
+    if (msg) { renderFeed(); toast(msg); }
+  } catch (e) {
+    pendingStamps = items.concat(pendingStamps); savePending(); scheduleFlush(15000); // つながらなければ後で再送
+  }
+  flushing = false;
+}
+function onStamp(el) {
+  var postId = el.getAttribute('data-p'), type = el.getAttribute('data-s');
+  var post = state.posts.filter(function (p) { return p.id === postId; })[0];
+  if (!post) return;
+  if (state.me && post.uid === state.me.uid) { toast('自分の投稿にはスタンプをおせないよ'); return; }
+  if (isPressed(postId, type)) { toast('このスタンプはもう押したよ'); return; }
+  markPressed(postId, type);
+  state.bumped[postId + '|' + type] = countOf(post, type) + 1;
+  renderFeed();
+  var again = document.querySelector('.stamp[data-p="' + postId + '"][data-s="' + type + '"]');
+  if (again) again.classList.add('pop');
+  pendingStamps.push({ postId: postId, type: type }); savePending();
+  scheduleFlush();
+}
+
+// ============ 登録モーダル ============
+function openReg() { $('regModal').classList.remove('hidden'); }
+async function submitReg() {
+  var f = { classNum: $('regClass').value, studentNum: $('regNum').value, name: $('regName').value.trim(), teamId: state.regTeam || '', code: $('regCode').value.trim() };
+  var err = $('regErr');
+  if (!f.classNum || !f.studentNum || !f.name || !f.teamId || !f.code) { err.textContent = '5つとも入力してね'; err.classList.remove('hidden'); return; }
+  if (hasNg(f.name)) { err.textContent = '名前を見直してね'; err.classList.remove('hidden'); return; }
+  if (!confirm(f.classNum + '組 ' + f.studentNum + '番 「' + f.name + '」 でまちがいない？\n（登録したあとは自分で直せないよ。直すときは先生に言ってね）')) return;
+  var btn = $('regBtn'); btn.disabled = true; btn.textContent = '登録中…'; err.classList.add('hidden');
+  try {
+    var r = await writeCall('registerUser', f);
+    if (r && r.ok) {
+      setToken(r.token); state.me = r.user; loadMine(); updateMeChip();
+      $('regModal').classList.add('hidden'); toast('登録できたよ！ ようこそ ' + state.me.name + ' さん 🎉', 3200);
+      state.lastSig = ''; refresh(true);
+    } else { err.textContent = (r && r.error) || '登録できなかったよ'; err.classList.remove('hidden'); }
+  } catch (e) { err.textContent = 'つながらなかったよ。もう一度ためしてね'; err.classList.remove('hidden'); }
+  btn.disabled = false; btn.textContent = '登録してはじめる';
+}
+
+// ============ 登録の修正・引きつぎ ============
+function openFix() {
+  if (state.me) {
+    $('fixClass').value = state.me.classNum; $('fixNum').value = state.me.studentNum;
+    $('fixName').value = state.me.name; $('fixTeam').value = state.me.teamId;
+  }
+  $('fixPin').value = ''; $('fixErr').classList.add('hidden');
+  $('fixModal').classList.remove('hidden');
+}
+async function submitFix() {
+  var f = { classNum: $('fixClass').value, studentNum: $('fixNum').value, name: $('fixName').value.trim(), teamId: $('fixTeam').value };
+  var pin = $('fixPin').value, err = $('fixErr');
+  function bad(m) { err.textContent = m; err.classList.remove('hidden'); }
+  if (!f.classNum || !f.studentNum || !f.name || !f.teamId) return bad('4つとも入力してね');
+  if (hasNg(f.name)) return bad('名前を見直してね');
+  if (!/^\d{4}$/.test(pin)) return bad('PINは4けたの数字だよ');
+  var btn = $('fixBtn'); btn.disabled = true; err.classList.add('hidden');
+  try {
+    var r = await writeCall('fixProfile', getToken(), f, pin);
+    if (r && r.ok) {
+      setToken(r.token); state.me = r.user; loadMine(); updateMeChip();
+      $('fixModal').classList.add('hidden'); $('regModal').classList.add('hidden');
+      toast('なおしたよ！', 2600); state.lastSig = ''; refresh(true);
+    } else bad((r && r.error) || 'なおせなかったよ');
+  } catch (e) { bad('つながらなかったよ。もう一度ためしてね'); }
+  $('fixPin').value = ''; btn.disabled = false;
+}
+
+// ============ 投稿モーダル ============
+function normalizeText(s) {
+  s = String(s).normalize('NFKC').toLowerCase();
+  s = s.replace(/[ァ-ヶ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0x60); });
+  return s.replace(/[\s　・。、,.\-_*~!！?？]/g, '');
+}
+function hasNg(text) {
+  if (/https?:|www\.|@|\d{6,}/i.test(String(text).normalize('NFKC'))) return true;
+  var t = normalizeText(text).replace(/ばかり/g, '').replace(/はげま/g, '').replace(/はげし/g, '');
+  for (var i = 0; i < state.ng.length; i++) { if (t.indexOf(normalizeText(state.ng[i])) >= 0) return true; }
+  return false;
+}
+function openPost() {
+  if (!state.me) { openReg(); return; }
+  if (isPostedToday()) { toast('今日はもう報告したよ。また明日ね！'); return; }
+  state.tagSel = []; updateTagCount();
+  $('postErr').classList.add('hidden');
+  state.tagList = state.teamTags[state.me.teamId - 1] || [];
+  $('tagList').innerHTML = state.tagList.map(function (tg, i) {
+    return '<button class="tag-btn" data-i="' + i + '">' + esc(tg) + '</button>';
+  }).join('');
+  var t = teamOf(state.me.teamId);
+  $('postTeam').textContent = t.icon + ' ' + teamLabel(t) + ' として報告します';
+  $('postModal').classList.remove('hidden');
+}
+function updateTagCount() {
+  $('tagCount').textContent = state.tagSel.length;
+  $('tagPts').textContent = Math.min(state.tagSel.length, 5);
+}
+function closePost() { $('postModal').classList.add('hidden'); }
+async function submitPost() {
+  if (state.posting) return;
+  var err = $('postErr');
+  function bad(m) { err.textContent = m; err.classList.remove('hidden'); }
+  if (!state.tagSel.length) return bad('できたことを1つ以上えらんでね');
+  err.classList.add('hidden');
+  state.posting = true;
+  var btn = $('postBtn'); btn.disabled = true; btn.textContent = 'おくっています…';
+  try {
+    var r = await writeCall('addPost', getToken(), state.tagSel.map(function (i) { return state.tagList[i]; }));
+    if (r && r.ok) {
+      closePost();
+      markPostedToday();
+      confetti(); toast('🎉 報告ありがとう！ +' + r.gained + 'pt ゲット！', 3200);
+      updateMeChip(r.total);
+      state.filter = 0; setChips(); state.lastSig = ''; await refresh(true);
+    } else {
+      if (r && /もう報告/.test(r.error || '')) { markPostedToday(); closePost(); toast(r.error); }
+      else bad((r && r.error) || 'おくれなかったよ');
+    }
+  } catch (e) { bad('つながらなかったよ。もう一度ためしてね'); }
+  state.posting = false; btn.disabled = false; btn.textContent = '報告する';
+}
+function setChips() { renderTeamList(); }
+
+// ============ 新しいバージョンの自動反映 ============
+function busyNow() {
+  var modalOpen = !$('postModal').classList.contains('hidden') || !$('regModal').classList.contains('hidden') || !$('fixModal').classList.contains('hidden');
+  return modalOpen;
+}
+function showUpdateBar() { $('updateBar').classList.remove('hidden'); }
+function reloadApp() { location.reload(); }
+// 画面ファイルの Last-Modified / ETag を見て、新しい版が公開されたか調べる（サーバーの負担が軽い HEAD）
+var pageStamp = null;
+async function fetchPageStamp() {
+  try {
+    var r = await fetch(location.pathname, { method: 'HEAD', cache: 'no-store' });
+    if (!r.ok) return null;
+    var st = (r.headers.get('Last-Modified') || '') + '|' + (r.headers.get('ETag') || '');
+    return st === '|' ? null : st;
+  } catch (e) { return null; }
+}
+async function checkForUpdate() {
+  var st = await fetchPageStamp();
+  if (!st) return;                                  // 取れなければ何もしない
+  if (pageStamp == null) { pageStamp = st; return; }
+  if (st === pageStamp) return;
+  if (busyNow()) { showUpdateBar(); return; }       // 入力中は勝手に再読みこみしない
+  location.reload();
+}
+
+function startTimers() {
+  fetchPageStamp().then(function (st) { if (pageStamp == null) pageStamp = st; });
+  setInterval(function () { if (!document.hidden) refresh(false); }, 120000);
+  setInterval(checkForUpdate, 3 * 60 * 1000);
+  function onBack() { if (!document.hidden) { checkForUpdate(); refresh(false); } }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flushStamps(); else onBack(); });
+  window.addEventListener('pagehide', flushStamps);
+  window.addEventListener('focus', onBack);
+}
+
+// ============ イベント ============
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  var chip = t.closest('#chips .chip'); if (chip) { state.filter = +chip.getAttribute('data-f'); setChips(); renderFeed(); return; }
+  var st = t.closest('.stamp'); if (st && st.hasAttribute('data-p')) { onStamp(st); return; }
+  var tc = t.closest('.team-card');
+  if (tc) {
+    state.regTeam = +tc.getAttribute('data-team');
+    document.querySelectorAll('.team-card').forEach(function (b) { b.classList.toggle('on', b === tc); });
+    return;
+  }
+  var tag = t.closest('.tag-btn');
+  if (tag) {
+    var ti = +tag.getAttribute('data-i'), at = state.tagSel.indexOf(ti);
+    if (at >= 0) state.tagSel.splice(at, 1); else state.tagSel.push(ti);
+    tag.classList.toggle('on', at < 0); updateTagCount();
+    return;
+  }
+});
+$('fab').addEventListener('click', openPost);
+$('reloadBtn').addEventListener('click', function () {
+  var wait = 30000 - (Date.now() - state.lastRefresh);
+  if (wait > 0) { toast('あと' + Math.ceil(wait / 1000) + '秒したら見られるよ'); return; }
+  refresh(true).then(function () { toast('更新したよ'); });
+});
+$('postClose').addEventListener('click', closePost);
+$('postBtn').addEventListener('click', submitPost);
+$('regBtn').addEventListener('click', submitReg);
+$('openFix1').addEventListener('click', openFix);
+$('meChip').addEventListener('click', openFix);
+$('fixBtn').addEventListener('click', submitFix);
+$('fixClose').addEventListener('click', function () { $('fixModal').classList.add('hidden'); });
+$('updateNow').addEventListener('click', reloadApp);
+
+boot();
+</script>
+</body>
+</html>
