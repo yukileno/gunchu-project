@@ -52,6 +52,7 @@
   /* マスター数で変わる飾り：アイコンのふち・称号バッジ・吹き出しの光 */
   .ava-wrap { position: relative; flex: none; width: 52px; height: 52px; padding: 3px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
   .ava-wrap .avatar { box-shadow: 0 0 0 2px #fff; }
+  .ava-emb { position: absolute; z-index: 3; right: -9px; bottom: -7px; width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
   .ava-col { flex: none; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .ava-wrap.t3, .ava-wrap.t4, .ava-wrap.t5 { animation: aura 1.8s ease-in-out infinite; }
   @keyframes aura { 50% { box-shadow: 0 0 26px 4px rgba(250,204,21,.95); } }
@@ -588,7 +589,7 @@ function openStatus() {
   $('stBody').innerHTML =
     '<div class="st-hero t' + tier + '">' + sparks +
       '<div class="ava-wrap t' + tier + ' mx-auto" style="width:76px;height:76px;padding:4px">' + (n >= 8 ? '<span class="ava-crown" style="font-size:28px;top:-22px">👑</span>' : '') +
-        '<div class="avatar flex h-full w-full items-center justify-center rounded-full text-4xl text-white" style="background:linear-gradient(135deg,' + t.color + ',' + t.color + 'aa)">' + t.icon + '</div></div>' +
+        '<div class="avatar flex h-full w-full items-center justify-center rounded-full text-4xl text-white" style="background:linear-gradient(135deg,' + t.color + 'cc,' + t.color + '55)">' + teamImg(t) + '</div>' + (tier ? '<img class="ava-emb" src="img/e' + tier + '.webp" alt="" width="34" height="34" style="width:34px;height:34px;right:-12px;bottom:-8px">' : '') + '</div>' +
       '<div class="mt-2 text-sm font-bold text-white/90">' + me.classNum + '組 ' + esc(me.name) + ' さん</div>' +
       '<div class="st-title">' + title + '</div>' +
     '</div>' +
@@ -720,6 +721,7 @@ function countOf(p, key) {
   return b != null && b > base ? b : base;
 }
 // マスター数 → 飾りの段階（0:なし 1:銅 2:銀 3:金 4:虹 5:全部マスター）
+function teamImg(t) { return '<img src="img/t' + (t.id < 10 ? '0' : '') + t.id + '.webp" alt="' + esc(t.short) + '" width="40" height="40" decoding="async" style="width:100%;height:100%;object-fit:contain;padding:2px">'; }
 function mTier(n) { return n >= 11 ? 5 : n >= 8 ? 4 : n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0; }
 function mBadgeHtml(ms) {
   if (!ms.length) return '';
@@ -750,7 +752,8 @@ function renderFeed() {
     var avatar = '<div class="ava-col">' +
       '<div class="ava-wrap t' + tier + '">' + (ms.length >= 8 ? '<span class="ava-crown">👑</span>' : '') +
       (tier >= 3 ? '<span class="ava-sp" style="top:-4px;right:-6px">✨</span><span class="ava-sp" style="bottom:-2px;left:-7px;animation-delay:.6s">⭐</span><span class="ava-sp" style="top:14px;left:-9px;animation-delay:1.2s">💫</span>' : '') +
-      '<div class="avatar flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl text-white" style="background:linear-gradient(135deg,' + t.color + ',' + t.color + 'aa)">' + t.icon + '</div></div>' +
+      '<div class="avatar flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl text-white" style="background:linear-gradient(135deg,' + t.color + 'cc,' + t.color + '55)">' + teamImg(t) + '</div>' +
+      (tier ? '<img class="ava-emb" src="img/e' + tier + '.webp" alt="" width="26" height="26">' : '') + '</div>' +
       (tier ? '<div class="ava-title at' + tier + '">' + (tier >= 5 ? '👑 全制覇' : STATUS_TITLES.filter(function (x) { return ms.length >= x[0]; })[0][1]) + '</div>' : '') + '</div>';
     var body =
       '<div class="min-w-0 max-w-[82%]">' +
