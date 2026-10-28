@@ -56,10 +56,11 @@
   .ava-wrap.t1 { background: linear-gradient(135deg, #f0b27a, #b9691f); }
   .ava-wrap.t2 { background: linear-gradient(135deg, #f3f4f6, #9ca3af, #f3f4f6); box-shadow: 0 0 10px rgba(156,163,175,.9); }
   .ava-wrap.t3 { background: linear-gradient(135deg, #fde047, #f59e0b, #fde047); box-shadow: 0 0 14px rgba(245,158,11,.95); }
-  .ava-wrap.t4, .ava-wrap.t5 { background: conic-gradient(#f43f5e, #f59e0b, #facc15, #22c55e, #06b6d4, #6366f1, #d946ef, #f43f5e); box-shadow: 0 0 16px rgba(217,70,239,.8); animation: ringspin 3s linear infinite; }
-  .ava-wrap.t4 .avatar, .ava-wrap.t5 .avatar { animation: ringspin-rev 3s linear infinite; }
-  @keyframes ringspin { to { transform: rotate(360deg); } }
-  @keyframes ringspin-rev { to { transform: rotate(-360deg); } }
+  /* 虹のふちは「回す」のではなく色相を変える（回すと、はみ出す範囲が変わってスクロールバーがちらつくため） */
+  .ava-wrap.t4, .ava-wrap.t5 { box-shadow: 0 0 16px rgba(217,70,239,.8); }
+  .ava-wrap.t4::before, .ava-wrap.t5::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#f43f5e, #f59e0b, #facc15, #22c55e, #06b6d4, #6366f1, #d946ef, #f43f5e); animation: ringhue 3s linear infinite; }
+  .ava-wrap .avatar { position: relative; }
+  @keyframes ringhue { to { filter: hue-rotate(360deg); } }
   .ava-crown { position: absolute; top: -15px; left: 50%; transform: translateX(-50%) rotate(-8deg); font-size: 20px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); animation: bob 1.6s ease-in-out infinite; }
   @keyframes bob { 50% { transform: translateX(-50%) translateY(-3px) rotate(8deg); } }
   .mbadge { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 800; color: #fff; background: linear-gradient(100deg, #f59e0b, #ef4444, #d946ef, #6366f1, #f59e0b); background-size: 300% 100%; animation: shine 3s linear infinite; box-shadow: 0 1px 6px rgba(217,70,239,.5); }
