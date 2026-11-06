@@ -373,20 +373,11 @@ bus.on('race:finish', (d) => {
   const AIClass = mods.ai && mods.ai.AIDriver;
   world.playerAI = (AIClass && safe('ai.player', () => new AIClass(world.player, world.track, { difficulty: 'easy' }))) || new FallbackAI(world.player, world.track);
 });
-bus.on('race:end', (d) => {
+bus.on('race:end', () => {
   if (!world || world.mode !== 'race') return;
   resultsShown = true;
-  const results = (d && d.results) || world.race.computeResults();
-  if (state === 'paused') resume();
-  setTimeout(() => {
-    if (!world || !resultsShown) return;
-    audio.playMusic('menu');
-    hud.showResults(results, {
-      laps: world.race.laps,
-      onRestart: () => startRace(lastSettings),
-      onMenu: () => reward.showRanking(),
-    });
-  }, 200);
+  audio.playMusic('menu');
+  // タイム保存の応答にランキングを同梱。reward側で自動表示・自動帰還する。
 });
 
 // ---------------------------------------------------------------------------------------------
