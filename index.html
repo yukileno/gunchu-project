@@ -180,6 +180,7 @@
   <aside id="side" class="space-y-3">
     <button id="fab" class="cta w-full rounded-3xl py-4 text-xl font-extrabold text-white">✨ ＋ 報告する ✨</button>
     <div id="masterCard" class="glass p-3"></div>
+    <a href="kart/" class="glass w-full py-2 text-sm font-extrabold" style="display:block;text-align:center;color:#4f46e5">🏎️ 報告ごほうびカート・タイムランキング</a>
     <button id="rankBtn" class="glass w-full py-2 text-sm font-extrabold text-amber-600 active:scale-95">🏆 ランキングを見る</button>
     <button id="reloadBtn" class="glass w-full py-2 text-sm font-extrabold text-violet-700 active:scale-95">🔄 新しい投稿を見る</button>
 
@@ -597,6 +598,7 @@ function openStatus() {
       '<div class="st-tile" style="background:linear-gradient(135deg,#fde68a,#f59e0b)"><div class="text-xs font-extrabold text-amber-900">🏅 マスターしたチーム</div><div class="st-num text-amber-900"><span id="stN">0</span><small> / ' + TEAMS.length + '</small></div></div>' +
       '<div class="st-tile" style="background:linear-gradient(135deg,#a7f3d0,#10b981)"><div class="text-xs font-extrabold text-emerald-900">💎 これまでのポイント</div><div class="st-num text-emerald-900"><span id="stP">0</span><small> pt</small></div></div>' +
     '</div>' +
+    '<div class="st-tile mt-3" style="padding:14px;background:#e0e7ff;color:#312e81"><div class="font-extrabold">🏎️ マスターごほうび：カートのクラス解放</div><div>50cc：いつでも使える</div><div>' + (n >= 5 ? '🔓 100cc 解放ずみ！' : '🔒 100cc：5チームで解放（あと' + (5 - n) + 'チーム）') + '</div><div>' + (n >= 11 ? '🔓 150cc 解放ずみ！' : '🔒 150cc：全11チームで解放（あと' + (11 - n) + 'チーム）') + '</div><a href="kart/" style="display:block;margin-top:8px;text-decoration:underline">カート・ランキングへ →</a><div class="text-xs">今日の報告で1日1回。クラス共通で1回だよ。</div></div>' +
     '<div class="st-lv mt-3"><div class="flex justify-between text-xs font-extrabold text-violet-800"><span>' + (next ? 'つぎの称号まで あと ' + (next - n) + ' チーム！' : '👑 いちばん上の称号！') + '</span><span>' + (next ? nextTitle : 'LEGEND') + '</span></div>' +
       '<div class="st-bar big"><i style="width:' + lvPct + '%"></i></div></div>' +
     '<div class="mt-3 text-sm font-extrabold text-violet-800">🎖️ チームバッジ コレクション ' + n + '/' + TEAMS.length + '</div>' +
@@ -913,7 +915,7 @@ async function submitPost() {
     if (r && r.ok) {
       closePost();
       markPostedToday();
-      confetti(); toast('🎉 報告ありがとう！ +' + r.gained + 'pt ゲット！', 3200);
+      confetti(); toast('🎉 報告ありがとう！ +' + r.gained + 'pt ゲット！ カートで1回遊べるよ！', 5000);
       if (r.me) applyMe(r.me); else updateMeChip(r.total);
       if (r.newlyMastered && r.me) setTimeout(function () { celebrateMaster(r.me); }, 2200);
       state.filter = 0; setChips(); state.lastSig = ''; await refresh(true);
