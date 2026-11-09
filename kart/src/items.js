@@ -1,6 +1,7 @@
 // Items: item boxes, roulette, projectiles & hazards. See ARCHITECTURE.md §3.
 import * as THREE from 'three';
 import { PHYSICS, ITEMS } from './config.js';
+import { itemPool } from './progression.js';
 import { bus } from './events.js';
 
 // models.js is owned by another agent; load it defensively so a missing/broken module never breaks items.
@@ -54,8 +55,7 @@ const WEIGHTS = [
   /*7*/ [12, 34, 0, 3, 20, 22, 7, 2],
   /*8*/ [8, 36, 0, 0, 16, 28, 10, 2],
 ];
-const ITEM_ORDER = ['mushroom', 'triple_mushroom', 'banana', 'green_shell', 'red_shell', 'star', 'lightning', 'blue_shell'];
-const ROULETTE_CYCLE = ITEMS && ITEMS.length ? ITEMS : ITEM_ORDER;
+const ITEM_ORDER = ITEMS;
 
 // Model normalization targets (max dimension in meters)
 const MODEL_SIZE = { item_box: 1.7, banana: 1.0, green_shell: 1.1, red_shell: 1.1, blue_shell: 1.5 };
@@ -198,10 +198,12 @@ function buildItemVisual(type) {
 // ItemSystem
 // ---------------------------------------------------------------------------------------------
 export class ItemSystem {
-  constructor({ scene, track, karts }) {
+  constructor({ scene, track, karts, masterCount = 11 }) {
     this.scene = scene;
     this.track = track;
     this.karts = karts || [];
+    this.itemPool = itemPool(masterCount);
+    this.rouletteCycle = [...this.itemPool.keys()];
     this.group = new THREE.Group();
     this.group.name = 'ItemSystem';
     scene?.add(this.group);
@@ -259,7 +261,7 @@ export class ItemSystem {
     const r = kart ? this.roulettes.get(kart) : null;
     if (r) { o.spinning = true; o.displayItem = r.display; }
     else { o.spinning = false; o.displayItem = kart?.item ?? null; }
-    o.count = kart?.itemCount ?? 0;
+    o.count = r ? this.itemPool.get(r.display) : kart?.itemCount ?? 0;
     return o;
   }
 
@@ -329,7 +331,8 @@ export class ItemSystem {
     if (kart.item == null && !this.roulettes.has(kart) && !kart.finished) {
       const final = this._rollItem(kart);
       const dur = kart.isPlayer ? ROULETTE_PLAYER : ROULETTE_AI_MIN + Math.random() * (ROULETTE_AI_MAX - ROULETTE_AI_MIN);
-      this.roulettes.set(kart, { timer: 0, duration: dur, final, display: ROULETTE_CYCLE[(Math.random() * ROULETTE_CYCLE.length) | 0], cycleTimer: 0 });
+      const cycle = this.rouletteCycle;
+      this.roulettes.set(kart, { timer: 0, duration: dur, final, display: cycle[(Math.random() * cycle.length) | 0], cycleTimer: 0 });
       bus.emit('item:roulette', { kart });
     }
   }
@@ -343,18 +346,21 @@ export class ItemSystem {
     const weights = WEIGHTS[Math.min(7, Math.max(0, row))];
     const blueActive = this.entities.some((e) => e.type === 'blue_shell' && !e.dead)
       || this.karts.some((k) => k && k.item === 'blue_shell');
-    let total = 0;
+    const candidates = [];
     for (let i = 0; i < ITEM_ORDER.length; i++) {
-      if (ITEM_ORDER[i] === 'blue_shell' && (blueActive || place === 1)) continue;
-      total += weights[i];
+      const item = ITEM_ORDER[i];
+      if (!this.itemPool.has(item) || weights[i] <= 0) continue;
+      if (item === 'blue_shell' && (blueActive || place === 1)) continue;
+      candidates.push([item, weights[i]]);
     }
-    let r = Math.random() * total;
-    for (let i = 0; i < ITEM_ORDER.length; i++) {
-      if (ITEM_ORDER[i] === 'blue_shell' && (blueActive || place === 1)) continue;
-      r -= weights[i];
-      if (r <= 0) return ITEM_ORDER[i];
+    // 最下位などで解放済みアイテムの重みがすべて0の場合も、初期アイテムは出る。
+    if (!candidates.length) return Math.random() < 0.5 ? 'banana' : 'green_shell';
+    let r = Math.random() * candidates.reduce((sum, [, weight]) => sum + weight, 0);
+    for (const [item, weight] of candidates) {
+      r -= weight;
+      if (r < 0) return item;
     }
-    return 'banana';
+    return candidates.at(-1)[0];
   }
 
   _updateRoulettes(dt) {
@@ -365,14 +371,14 @@ export class ItemSystem {
       if (r.cycleTimer <= 0) {
         // slow down near the end
         r.cycleTimer = remaining < 0.4 ? 0.14 : 0.07;
-        let idx = ROULETTE_CYCLE.indexOf(r.display);
-        idx = (idx + 1 + ((Math.random() * 2) | 0)) % ROULETTE_CYCLE.length;
-        r.display = ROULETTE_CYCLE[idx];
+        const cycle = this.rouletteCycle;
+        const idx = (cycle.indexOf(r.display) + 1) % cycle.length;
+        r.display = cycle[idx];
       }
       if (r.timer >= r.duration) {
         this.roulettes.delete(kart);
         kart.item = r.final;
-        kart.itemCount = r.final === 'triple_mushroom' ? 3 : 1;
+        kart.itemCount = this.itemPool.get(r.final);
         this._getState(kart).cooldown = 0.2; // avoid instant-fire if the button is still being tapped
         bus.emit('item:got', { kart, item: r.final });
       }
@@ -425,7 +431,7 @@ export class ItemSystem {
     bus.emit('item:use', { kart, item: item === 'triple_mushroom' ? 'mushroom' : item });
     if (consumed) {
       const count = finite(kart.itemCount, 1) - 1;
-      if (item === 'triple_mushroom' && count > 0) {
+      if (count > 0) {
         kart.itemCount = count;
       } else {
         kart.item = null;

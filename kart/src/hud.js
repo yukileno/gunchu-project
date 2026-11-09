@@ -176,8 +176,6 @@ export class HUD {
     this.track = null;
     this._offs = [];
     this._last = {};
-    this._rouletteTimer = 0;
-    this._rouletteIdx = 0;
     this._lastItemKey = '';
     this._standKey = '';
     this.active = false;
@@ -475,17 +473,17 @@ export class HUD {
     }
 
     // item slot
-    let spinning = false, display = null;
+    let spinning = false, display = null, displayCount = 0;
     if (itemSystem && typeof itemSystem.rouletteState === 'function') {
-      try { const rs = itemSystem.rouletteState(player); if (rs) { spinning = !!rs.spinning; display = rs.displayItem || null; } } catch (e) { /* ignore */ }
+      try { const rs = itemSystem.rouletteState(player); if (rs) { spinning = !!rs.spinning; display = rs.displayItem || null; displayCount = rs.count; } } catch (e) { /* ignore */ }
     }
     let key;
-    if (spinning) {
-      this._rouletteTimer -= dt;
-      if (this._rouletteTimer <= 0) { this._rouletteTimer = 0.07; this._rouletteIdx = (this._rouletteIdx + 1) % ITEMS.length; }
-      const shown = display && ITEMS.includes(display) ? display : ITEMS[this._rouletteIdx];
-      key = 'spin:' + shown;
-      if (key !== this._lastItemKey) this.itemImg.src = itemIcon(shown);
+    if (spinning && ITEMS.includes(display)) {
+      key = 'spin:' + display + ':' + displayCount;
+      if (key !== this._lastItemKey) {
+        this.itemImg.src = itemIcon(display);
+        this.itemCount.textContent = displayCount > 1 ? '×' + displayCount : '';
+      }
     } else if (player.item) {
       const count = player.itemCount || 1;
       key = 'item:' + player.item + ':' + count;
@@ -502,7 +500,7 @@ export class HUD {
       this.itemImg.style.visibility = has ? 'visible' : 'hidden';
       this.itemSlot.classList.toggle('spinning', spinning);
       this.itemSlot.classList.toggle('filled', has && !spinning);
-      if (!player.item || spinning) this.itemCount.textContent = '';
+      if (!has) this.itemCount.textContent = '';
       this.itemHint.style.opacity = has && !spinning ? 1 : 0;
     }
 
