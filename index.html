@@ -102,6 +102,9 @@
   .st-card.pick:hover { transform: translateY(-2px); border-color: var(--c); box-shadow: 0 6px 14px rgba(0,0,0,.12); }
   .st-card.pick:active { transform: scale(.97); }
   .st-card.pick:disabled { opacity: .6; cursor: wait; }
+  .st-card.got.current { box-shadow: 0 0 0 4px #8b5cf6, 0 0 20px rgba(139,92,246,.75); }
+  .st-card.got.pick { width: 100%; color: #fff; background: linear-gradient(145deg, var(--c), #fbbf24 160%); border: none; box-shadow: 0 0 0 3px #fde047, 0 6px 16px rgba(0,0,0,.25); cursor: pointer; transition: transform .12s, box-shadow .12s; }
+  .st-card.got.pick:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px #fff, 0 10px 20px rgba(0,0,0,.3); }
   .st-pick { margin-top: 4px; display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 800; color: #fff; background: var(--c); }
   .mbadge { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 800; color: #fff; background: linear-gradient(100deg, #f59e0b, #ef4444, #d946ef, #6366f1, #f59e0b); background-size: 300% 100%; animation: shine 3s linear infinite; box-shadow: 0 1px 6px rgba(217,70,239,.5); }
   .mbadge.small { background: linear-gradient(100deg, #f59e0b, #fb923c); animation: none; box-shadow: none; }
@@ -569,9 +572,13 @@ function countUp(el, to, ms) {
     if (k < 1) requestAnimationFrame(step);
   })(t0);
 }
+function isAllMastered(list) {
+  return TEAMS.filter(function (x) { return (list || []).indexOf(x.id) >= 0; }).length >= TEAMS.length;
+}
 function openStatus(quiet) {
   var me = state.me; if (!me) { openReg(); return; }
   var mp = me.masterPoints || 50, list = me.mastered || [], prog = me.teamProgress || {}, n = list.length, tier = mTier(n);
+  var allMastered = isAllMastered(list);
   var title = STATUS_TITLES.filter(function (x) { return n >= x[0]; })[0][1];
   var steps = [0, 1, 3, 5, 8, 11];
   var next = steps.filter(function (x) { return x > n; })[0];
@@ -582,6 +589,12 @@ function openStatus(quiet) {
   var cards = TEAMS.map(function (x, i) {
     var got = list.indexOf(x.id) >= 0, now = x.id === me.teamId && !got, pct = Math.round(tp / mp * 100);
     var delay = quiet ? '' : 'animation-delay:' + (0.08 * i + 0.2) + 's;';
+    if (allMastered) {
+      if (x.id === me.teamId) return '<div class="st-card got current" style="--c:' + x.color + ';' + delay + '"><div class="st-medal">👑</div><div class="text-3xl">' + x.icon + '</div>' +
+        '<div class="mt-1 text-sm font-extrabold">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div><div class="st-tag">🔥 いまここ</div></div>';
+      return '<button type="button" class="st-card got pick" data-st-team="' + x.id + '" style="--c:' + x.color + ';' + delay + '"><div class="st-medal">🏅</div><div class="text-3xl">' + x.icon + '</div>' +
+        '<div class="mt-1 text-sm font-extrabold">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div><div class="st-tag">▶ これにする</div></button>';
+    }
     if (got) return '<div class="st-card got" style="--c:' + x.color + ';' + delay + '"><div class="st-medal">🏅</div><div class="text-3xl">' + x.icon + '</div>' +
       '<div class="mt-1 text-sm font-extrabold">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div><div class="st-tag">MASTER!</div></div>';
     if (now) return '<div class="st-card now" style="--c:' + x.color + ';' + delay + '"><div class="text-3xl">' + x.icon + '</div>' +
@@ -613,9 +626,9 @@ function openStatus(quiet) {
       '<div class="st-bar big"><i style="width:' + lvPct + '%"></i></div></div>' +
     '<div class="mt-3 flex flex-wrap items-center justify-between gap-2">' +
       '<div class="text-sm font-extrabold text-violet-800">🎖️ チームバッジ コレクション ' + n + '/' + TEAMS.length + '</div>' +
-      (n < TEAMS.length ? '<button type="button" id="stTransfer" class="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-violet-700 shadow active:scale-95" style="background:#ede9fe">🔄 説明を見てえらぶ</button>' : '') +
+      '<button type="button" id="stTransfer" class="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-violet-700 shadow active:scale-95" style="background:#ede9fe">🔄 説明を見てえらぶ</button>' +
     '</div>' +
-    (n < TEAMS.length ? '<div class="mt-1 text-xs text-gray-500">まだマスターしていないチームをタップすると、いま取り組むプロジェクトをかえられるよ（途中のポイントはそのまま残るよ）。</div>' : '') +
+    '<div class="mt-1 text-xs text-gray-500">' + (allMastered ? '全チームマスター達成！ どのチームでもタップして自由に切りかえて報告できるよ。' : 'まだマスターしていないチームをタップすると、いま取り組むプロジェクトをかえられるよ（途中のポイントはそのまま残るよ）。') + '</div>' +
     '<div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">' + cards + '</div>';
   $('statusModal').classList.remove('hidden');
   if (quiet) { $('stN').textContent = n; $('stP').textContent = me.totalPoints || 0; }
@@ -626,15 +639,18 @@ function openStatus(quiet) {
 }
 async function switchTeamFromStatus(teamId) {
   var me = state.me; if (!me || state.switching) return;
-  var list = me.mastered || [];
-  if (teamId === me.teamId || list.indexOf(teamId) >= 0) return;
+  var list = me.mastered || [], allMastered = isAllMastered(list);
+  if (teamId === me.teamId || (!allMastered && list.indexOf(teamId) >= 0)) return;
   var x = teamOf(teamId), cur = teamOf(me.teamId), mp = me.masterPoints || 50;
   var curMastered = list.indexOf(me.teamId) >= 0;
   var curTp = Math.min(me.teamPoints || 0, mp);
   var nextTp = Math.min(Number((me.teamProgress || {})[teamId]) || 0, mp);
   var msg = CIRCLED[x.id - 1] + ' ' + x.name + ' に切りかえますか？';
-  if (!curMastered) msg += '\n※いまの「' + cur.short + '」のポイント（' + curTp + '/' + mp + 'pt）はそのまま残るよ。';
-  if (nextTp > 0) msg += '\n※「' + x.short + '」は続き（' + nextTp + '/' + mp + 'pt）から始められるよ！';
+  if (allMastered) msg += '\n※全チームマスター達成済みなので、どのチームでも自由に切りかえられるよ！';
+  else {
+    if (!curMastered) msg += '\n※いまの「' + cur.short + '」のポイント（' + curTp + '/' + mp + 'pt）はそのまま残るよ。';
+    if (nextTp > 0) msg += '\n※「' + x.short + '」は続き（' + nextTp + '/' + mp + 'pt）から始められるよ！';
+  }
   if (!confirm(msg)) return;
   state.switching = true;
   document.querySelectorAll('.st-card.pick, #stTransfer').forEach(function (b) { b.disabled = true; });
@@ -659,20 +675,23 @@ async function switchTeamFromStatus(teamId) {
 function openTransfer(mode) {
   var me = state.me; if (!me) return;
   var list = me.mastered || [], prog = me.teamProgress || {}, mp = me.masterPoints || 50;
+  var allMastered = isAllMastered(list);
   var isSwitch = mode === 'switch';
   $('ttTitle').textContent = isSwitch ? '🔄 取り組むプロジェクトをかえる' : '🎉 マスター達成！ 次のチームにちょうせん';
   $('ttSub').textContent = isSwitch
-    ? 'これからがんばるプロジェクトを1つえらぼう。いまのチームの途中ポイントはそのまま残るよ。'
+    ? (allMastered ? '全チームマスター達成！ これから報告したいチームを自由にえらべるよ。' : 'これからがんばるプロジェクトを1つえらぼう。いまのチームの途中ポイントはそのまま残るよ。')
     : '次にがんばるチームを1つえらぼう。いままでのチームの記録は残るよ。';
   $('ttClose').textContent = isSwitch ? 'とじる' : 'あとで';
   $('ttBtn').textContent = isSwitch ? 'このプロジェクトにする' : 'このチームに移る';
   state.ttSel = 0; $('ttErr').classList.add('hidden');
-  $('ttGrid').innerHTML = TEAMS.filter(function (x) { return list.indexOf(x.id) < 0 && x.id !== me.teamId; }).map(function (x) {
+  $('ttGrid').innerHTML = TEAMS.filter(function (x) { return (allMastered || list.indexOf(x.id) < 0) && x.id !== me.teamId; }).map(function (x) {
     var savedTp = Math.min(Number(prog[x.id]) || 0, mp);
+    var sub = list.indexOf(x.id) >= 0
+      ? '<div class="mt-1 text-xs font-extrabold" style="color:' + x.color + '">🏅 マスターずみ</div>'
+      : (savedTp > 0 ? '<div class="mt-1 text-xs font-extrabold" style="color:' + x.color + '">⏸️ 途中 ' + savedTp + '/' + mp + 'pt（続きから）</div>' : '');
     return '<button type="button" class="tt-card" data-tt="' + x.id + '" style="--c:' + x.color + '">' +
       '<div class="flex items-center gap-2"><span class="text-3xl">' + x.icon + '</span><span class="text-base font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.name) + '</span></div>' +
-      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div>' +
-      (savedTp > 0 ? '<div class="mt-1 text-xs font-extrabold" style="color:' + x.color + '">⏸️ 途中 ' + savedTp + '/' + mp + 'pt（続きから）</div>' : '') +
+      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div>' + sub +
       '</button>';
   }).join('');
   $('transferModal').classList.remove('hidden');
