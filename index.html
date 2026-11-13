@@ -98,6 +98,11 @@
   .st-tag { margin-top: 2px; display: inline-block; border-radius: 999px; background: rgba(255,255,255,.9); color: #b45309; font-size: 11px; font-weight: 900; padding: 0 8px; letter-spacing: .05em; }
   .st-card.now { background: #fff; box-shadow: 0 0 0 3px var(--c), 0 0 18px var(--c); }
   .st-card.lock { background: #f3f4f6; color: #9ca3af; }
+  .st-card.pick { width: 100%; background: #fff; color: #374151; border: 2px dashed #cbd5e1; cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; }
+  .st-card.pick:hover { transform: translateY(-2px); border-color: var(--c); box-shadow: 0 6px 14px rgba(0,0,0,.12); }
+  .st-card.pick:active { transform: scale(.97); }
+  .st-card.pick:disabled { opacity: .6; cursor: wait; }
+  .st-pick { margin-top: 4px; display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 800; color: #fff; background: var(--c); }
   .mbadge { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 800; color: #fff; background: linear-gradient(100deg, #f59e0b, #ef4444, #d946ef, #6366f1, #f59e0b); background-size: 300% 100%; animation: shine 3s linear infinite; box-shadow: 0 1px 6px rgba(217,70,239,.5); }
   .mbadge.small { background: linear-gradient(100deg, #f59e0b, #fb923c); animation: none; box-shadow: none; }
   @keyframes shine { to { background-position: 300% 0; } }
@@ -247,14 +252,14 @@
   </div>
 </div>
 
-<!-- ===== 移籍（マスターしたあと） ===== -->
+<!-- ===== 移籍（マスターしたあと・いつでも変更） ===== -->
 <div id="transferModal" class="modal-back hidden" style="z-index:65">
   <div class="modal-card modal-wide">
     <div class="flex items-center justify-between">
-      <div class="text-xl font-extrabold text-amber-600">🎉 マスター達成！ 次のチームにちょうせん</div>
+      <div id="ttTitle" class="text-xl font-extrabold text-amber-600">🎉 マスター達成！ 次のチームにちょうせん</div>
       <button id="ttClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">あとで</button>
     </div>
-    <div class="mt-1 text-sm text-gray-600">次にがんばるチームを1つえらぼう。えらぶと、そのチームの所属になります（ポイントは0から）。</div>
+    <div id="ttSub" class="mt-1 text-sm text-gray-600">次にがんばるチームを1つえらぼう。いまのチームの途中ポイントはそのまま残るよ。</div>
     <div id="ttGrid" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
     <div id="ttErr" class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
     <button id="ttBtn" class="cta mt-4 w-full rounded-2xl py-3 text-lg font-extrabold text-white">このチームに移る</button>
@@ -290,7 +295,7 @@
       <button id="postClose" class="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold">✕ とじる</button>
     </div>
     <div id="postTeam" class="mt-1 text-xs text-gray-500"></div>
-    <div class="mt-3 text-sm font-bold">今日できたことを、あてはまるものぜんぶえらぼう（1つ1ポイント・最大5）</div>
+    <div class="mt-3 text-sm font-bold">昨日の一日をふり返ってみよう。どんなことができましたか？ あてはまるものをえらぼう（1つ1ポイント・最大5）</div>
     <div id="tagList" class="mt-2 space-y-2"></div>
     <div class="mt-2 text-right text-sm font-bold text-emerald-700">えらんだ数：<span id="tagCount">0</span>こ（<span id="tagPts">0</span>pt）</div>
     <div id="postErr" class="mt-2 hidden rounded-xl bg-red-50 p-2 text-sm font-bold text-red-600"></div>
@@ -325,7 +330,7 @@ var STAMPS = [
 var state = {
   me: null, tags: [], ng: [], posts: [], stats: null, 
   filter: 0, mine: {}, bumped: {}, regTeam: 0, ttSel: 0, rankTab: 'all', rankData: null, sig: '', tagSel: [], seen: {}, drawn: false, teamTags: [], tagList: [], postedToday: false,
-  lastSig: '', lastRefresh: 0, posting: false
+  lastSig: '', lastRefresh: 0, posting: false, switching: false
 };
 
 // ============ ユーティリティ ============
@@ -564,9 +569,9 @@ function countUp(el, to, ms) {
     if (k < 1) requestAnimationFrame(step);
   })(t0);
 }
-function openStatus() {
+function openStatus(quiet) {
   var me = state.me; if (!me) { openReg(); return; }
-  var mp = me.masterPoints || 50, list = me.mastered || [], n = list.length, tier = mTier(n);
+  var mp = me.masterPoints || 50, list = me.mastered || [], prog = me.teamProgress || {}, n = list.length, tier = mTier(n);
   var title = STATUS_TITLES.filter(function (x) { return n >= x[0]; })[0][1];
   var steps = [0, 1, 3, 5, 8, 11];
   var next = steps.filter(function (x) { return x > n; })[0];
@@ -576,13 +581,18 @@ function openStatus() {
   var t = teamOf(me.teamId), tp = Math.min(me.teamPoints || 0, mp);
   var cards = TEAMS.map(function (x, i) {
     var got = list.indexOf(x.id) >= 0, now = x.id === me.teamId && !got, pct = Math.round(tp / mp * 100);
-    var delay = 'animation-delay:' + (0.08 * i + 0.2) + 's;';
+    var delay = quiet ? '' : 'animation-delay:' + (0.08 * i + 0.2) + 's;';
     if (got) return '<div class="st-card got" style="--c:' + x.color + ';' + delay + '"><div class="st-medal">🏅</div><div class="text-3xl">' + x.icon + '</div>' +
       '<div class="mt-1 text-sm font-extrabold">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div><div class="st-tag">MASTER!</div></div>';
     if (now) return '<div class="st-card now" style="--c:' + x.color + ';' + delay + '"><div class="text-3xl">' + x.icon + '</div>' +
       '<div class="mt-1 text-sm font-extrabold text-gray-800">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div>' +
       '<div class="st-bar"><i style="width:' + pct + '%;background:' + x.color + '"></i></div><div class="text-xs font-extrabold" style="color:' + x.color + '">🔥 挑戦中 ' + tp + '/' + mp + '</div></div>';
-    return '<div class="st-card lock" style="' + delay + '"><div class="text-3xl grayscale">' + x.icon + '</div><div class="mt-1 text-sm font-extrabold">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div><div class="text-xs font-bold">🔒 ？？？</div></div>';
+    var savedTp = Math.min(Number(prog[x.id]) || 0, mp), savedPct = Math.round(savedTp / mp * 100);
+    return '<button type="button" class="st-card pick" data-st-team="' + x.id + '" style="--c:' + x.color + ';' + delay + '"><div class="text-3xl">' + x.icon + '</div>' +
+      '<div class="mt-1 text-sm font-extrabold text-gray-800">' + CIRCLED[x.id - 1] + ' ' + esc(x.short) + '</div>' +
+      (savedTp > 0
+        ? '<div class="st-bar"><i style="width:' + savedPct + '%;background:' + x.color + '"></i></div><div class="text-xs font-extrabold" style="color:' + x.color + '">⏸️ 途中 ' + savedTp + '/' + mp + '</div><div class="st-pick">▶ つづきから</div>'
+        : '<div class="st-pick">▶ これにする</div>') + '</button>';
   }).join('');
   var sparks = ['✨', '⭐', '💫', '🌟', '✨', '⭐'].map(function (e, i) {
     return '<span class="st-spark" style="left:' + (8 + i * 17) + '%;top:' + (i % 2 ? 12 : 68) + '%;animation-delay:' + (i * 0.35) + 's">' + e + '</span>';
@@ -601,20 +611,69 @@ function openStatus() {
     '<div class="st-tile mt-3" style="padding:14px;background:#e0e7ff;color:#312e81"><div class="font-extrabold">🏎️ マスターごほうび：カートのアイテム・クラス解放</div><div>最初から：50cc・緑こうら・バナナ</div><div>' + (n >= 5 ? '🔓 100cc 解放ずみ！' : '🔒 100cc：5チームで解放（あと' + (5 - n) + 'チーム）') + '</div><div>' + (n >= 11 ? '🔓 150cc 解放ずみ！' : '🔒 150cc：全11チームで解放（あと' + (11 - n) + 'チーム）') + '</div><a href="kart/" style="display:block;margin-top:8px;text-decoration:underline">マスター1チームごとに新しいごほうび。カートで一覧を見よう →</a><div class="text-xs">今日の報告で1日1回。完走後のランキングは1日1回・10秒間だよ。</div></div>' +
     '<div class="st-lv mt-3"><div class="flex justify-between text-xs font-extrabold text-violet-800"><span>' + (next ? 'つぎの称号まで あと ' + (next - n) + ' チーム！' : '👑 いちばん上の称号！') + '</span><span>' + (next ? nextTitle : 'LEGEND') + '</span></div>' +
       '<div class="st-bar big"><i style="width:' + lvPct + '%"></i></div></div>' +
-    '<div class="mt-3 text-sm font-extrabold text-violet-800">🎖️ チームバッジ コレクション ' + n + '/' + TEAMS.length + '</div>' +
+    '<div class="mt-3 flex flex-wrap items-center justify-between gap-2">' +
+      '<div class="text-sm font-extrabold text-violet-800">🎖️ チームバッジ コレクション ' + n + '/' + TEAMS.length + '</div>' +
+      (n < TEAMS.length ? '<button type="button" id="stTransfer" class="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-violet-700 shadow active:scale-95" style="background:#ede9fe">🔄 説明を見てえらぶ</button>' : '') +
+    '</div>' +
+    (n < TEAMS.length ? '<div class="mt-1 text-xs text-gray-500">まだマスターしていないチームをタップすると、いま取り組むプロジェクトをかえられるよ（途中のポイントはそのまま残るよ）。</div>' : '') +
     '<div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">' + cards + '</div>';
   $('statusModal').classList.remove('hidden');
-  countUp($('stN'), n, 900); countUp($('stP'), me.totalPoints || 0, 1300);
-  if (n > 0) setTimeout(confetti, 250);
+  if (quiet) { $('stN').textContent = n; $('stP').textContent = me.totalPoints || 0; }
+  else {
+    countUp($('stN'), n, 900); countUp($('stP'), me.totalPoints || 0, 1300);
+    if (n > 0) setTimeout(confetti, 250);
+  }
 }
-function openTransfer() {
-  var me = state.me; if (!me) return;
+async function switchTeamFromStatus(teamId) {
+  var me = state.me; if (!me || state.switching) return;
   var list = me.mastered || [];
+  if (teamId === me.teamId || list.indexOf(teamId) >= 0) return;
+  var x = teamOf(teamId), cur = teamOf(me.teamId), mp = me.masterPoints || 50;
+  var curMastered = list.indexOf(me.teamId) >= 0;
+  var curTp = Math.min(me.teamPoints || 0, mp);
+  var nextTp = Math.min(Number((me.teamProgress || {})[teamId]) || 0, mp);
+  var msg = CIRCLED[x.id - 1] + ' ' + x.name + ' に切りかえますか？';
+  if (!curMastered) msg += '\n※いまの「' + cur.short + '」のポイント（' + curTp + '/' + mp + 'pt）はそのまま残るよ。';
+  if (nextTp > 0) msg += '\n※「' + x.short + '」は続き（' + nextTp + '/' + mp + 'pt）から始められるよ！';
+  if (!confirm(msg)) return;
+  state.switching = true;
+  document.querySelectorAll('.st-card.pick, #stTransfer').forEach(function (b) { b.disabled = true; });
+  try {
+    var r = await writeCall('transferTeam', getToken(), teamId);
+    if (r && r.ok) {
+      state.me = r.user;
+      updateMeChip(); renderMaster(); saveBootCache();
+      toast('🚀 ' + teamOf(state.me.teamId).short + 'チームに切りかえたよ！', 3000);
+      openStatus(true);
+      state.sig = ''; refresh(true);
+    } else {
+      toast((r && r.error) || '切りかえられなかったよ');
+      openStatus(true);
+    }
+  } catch (e) {
+    toast('つながらなかったよ。もう一度ためしてね');
+    openStatus(true);
+  }
+  state.switching = false;
+}
+function openTransfer(mode) {
+  var me = state.me; if (!me) return;
+  var list = me.mastered || [], prog = me.teamProgress || {}, mp = me.masterPoints || 50;
+  var isSwitch = mode === 'switch';
+  $('ttTitle').textContent = isSwitch ? '🔄 取り組むプロジェクトをかえる' : '🎉 マスター達成！ 次のチームにちょうせん';
+  $('ttSub').textContent = isSwitch
+    ? 'これからがんばるプロジェクトを1つえらぼう。いまのチームの途中ポイントはそのまま残るよ。'
+    : '次にがんばるチームを1つえらぼう。いままでのチームの記録は残るよ。';
+  $('ttClose').textContent = isSwitch ? 'とじる' : 'あとで';
+  $('ttBtn').textContent = isSwitch ? 'このプロジェクトにする' : 'このチームに移る';
   state.ttSel = 0; $('ttErr').classList.add('hidden');
   $('ttGrid').innerHTML = TEAMS.filter(function (x) { return list.indexOf(x.id) < 0 && x.id !== me.teamId; }).map(function (x) {
+    var savedTp = Math.min(Number(prog[x.id]) || 0, mp);
     return '<button type="button" class="tt-card" data-tt="' + x.id + '" style="--c:' + x.color + '">' +
       '<div class="flex items-center gap-2"><span class="text-3xl">' + x.icon + '</span><span class="text-base font-extrabold leading-tight">' + CIRCLED[x.id - 1] + ' ' + esc(x.name) + '</span></div>' +
-      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div></button>';
+      '<div class="mt-2 text-sm leading-snug text-gray-700">' + esc(x.desc) + '</div>' +
+      (savedTp > 0 ? '<div class="mt-1 text-xs font-extrabold" style="color:' + x.color + '">⏸️ 途中 ' + savedTp + '/' + mp + 'pt（続きから）</div>' : '') +
+      '</button>';
   }).join('');
   $('transferModal').classList.remove('hidden');
 }
@@ -628,6 +687,7 @@ async function submitTransfer() {
       state.me = r.user; $('transferModal').classList.add('hidden');
       updateMeChip(); renderMaster(); saveBootCache(); confetti();
       toast('🚀 ' + teamOf(state.me.teamId).short + 'チームに移ったよ！ がんばろう！', 3200);
+      if (!$('statusModal').classList.contains('hidden')) openStatus(true);
       state.sig = ''; refresh(true);
     } else { err.textContent = (r && r.error) || '移れなかったよ'; err.classList.remove('hidden'); }
   } catch (e) { err.textContent = 'つながらなかったよ。もう一度ためしてね'; err.classList.remove('hidden'); }
@@ -977,6 +1037,9 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (t.closest('#stOpen')) { openStatus(); return; }
+  if (t.closest('#stTransfer')) { openTransfer('switch'); return; }
+  var stc = t.closest('.st-card.pick');
+  if (stc) { switchTeamFromStatus(+stc.getAttribute('data-st-team')); return; }
   if (t.closest('#ttOpen')) { openTransfer(); return; }
   var ttc = t.closest('.tt-card');
   if (ttc) {
